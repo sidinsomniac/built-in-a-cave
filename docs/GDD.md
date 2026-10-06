@@ -19,7 +19,7 @@
 
 **Constraints:**
 - **Client-only web app.** Vite, React, TypeScript and zustand. No server and no accounts. Progress lives in localStorage, with automatic backups.
-- **Deterministic.** Grading never depends on a network, a clock or an AI. The same answer always gets the same zone.
+- **Deterministic.** Grading never depends on a network, a clock or an AI. The same answer always gets the same zone. (The simulation has no randomness at all; it's a time-stepped flow model, see `docs/HANDOFF.md` §4.)
 - **Audience:** a single learner, an experienced front-end developer, with no backend or distributed-systems background assumed.
 
 ## 2. The world
@@ -205,9 +205,11 @@ scripts/
 ```
 
 **Mocks give realistic responses without a server.**
-- **MSW** intercepts real `fetch` calls in the browser. Each exercise scripts the latency, status codes (429, 500), pagination cursors, out-of-order responses and aborts.
-- **mock-socket** gives a WebSocket server for chat, presence and live updates.
+- **A fetch mock built into the harness** answers the learner's real `fetch` calls. Each exercise scripts latency (per call, so responses can arrive out of order), status codes (429, 500), JSON bodies, pagination cursors and aborts.
+  - This replaced MSW: the sandbox iframe has an opaque origin and can't register a service worker.
+- **mock-socket** (planned for Phase 2, lesson 15) gives a WebSocket server for chat, presence and live updates.
 - Your code makes real requests, and the results are fully repeatable.
+- **The sandbox iframe** loads the harness as a classic IIFE script (`public/sandbox/sandbox.js`, built by `npm run build:sandbox`). It's isolated from the game by `sandbox="allow-scripts"`.
 
 **An optional Lab, later:** a local `docker-compose` (Redis, Postgres, a queue) for watching real stampedes and replication lag. It's never required.
 

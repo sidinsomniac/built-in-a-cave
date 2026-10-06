@@ -1,0 +1,25 @@
+tier: core
+type: predict
+title: What Does the Resolver Do?
+twist: trap - an expired TTL changes everything
+task: |
+  `expo.stark.com` has a **TTL of 300 seconds**. A recursive resolver fetched
+  the record **10 minutes ago**. A new user asks this resolver for the address.
+  What happens?
+options:
+  - The resolver answers from its cache straight away
+  - The resolver asks stark.com's authoritative server again, then answers and re-caches
+  - The resolver walks root → .com → authoritative again from scratch, every time
+  - The user's browser must ask the authoritative server itself
+answer: 1
+why: The cached answer expired 5 minutes ago (TTL 300 s), so the resolver must refresh it. It still remembers where stark.com's authoritative servers are, so it asks them directly and caches the fresh answer for another 300 seconds.
+hints:
+  nudge: Compare the age of the cached answer with its TTL.
+  question: Ten minutes is how many seconds? Is the cached answer still trusted?
+  pseudocode: |
+    if the cached answer is younger than its TTL: use it
+    otherwise: fetch it again from the server that holds it, and cache it again
+  flaw: If you chose "from its cache", check the units - TTLs are in seconds.
+  analogous: |
+    A carton of milk that expired a week ago: you don't drink it, but you also don't
+    rebuild the dairy - you buy a new one from the shop you already know.

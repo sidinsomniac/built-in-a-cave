@@ -1,0 +1,24 @@
+tier: outstanding
+type: predict
+title: Read the Timeline
+task: |
+  `const save = debounce(saveDraft, 100)` (the debounce you just wrote). The
+  user's edits call `save()` at **0 ms, 50 ms, 120 ms and 300 ms**. When does
+  `saveDraft` actually run?
+options:
+  - At 100 ms and 400 ms
+  - At 220 ms and 400 ms
+  - At 150 ms, 220 ms and 400 ms
+  - Only at 400 ms
+answer: 1
+why: "The call at 50 ms restarts the wait (to 150 ms), and the call at 120 ms restarts it again (to 220 ms) - so the first burst saves once, at 220 ms. The call at 300 ms starts a fresh wait that ends at 400 ms."
+hints:
+  nudge: Draw the time line. After each call, where does the finish line move to?
+  question: When the call at 120 ms arrives, has the previous wait finished yet?
+  pseudocode: |
+    for each call: the run moves to (call time + 100)
+    a run happens only if no new call arrives before it
+  flaw: If you picked 100 ms, you forgot that the call at 50 ms restarted the wait.
+  analogous: |
+    A lift door that reopens every time someone steps in: it only closes
+    once nobody has arrived for the full few seconds.

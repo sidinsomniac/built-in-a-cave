@@ -1,0 +1,12 @@
+- id: authoritative
+  type: choice
+  q: Which DNS server holds the real record for a domain?
+  options: ["The root server", "The TLD server", "The domain's authoritative server", "The recursive resolver"]
+  answer: 2
+  why: Root and TLD servers only point the way; the resolver caches. The authoritative server holds the record.
+- id: ttl-tradeoff
+  type: choice
+  q: Why might a team lower a record's TTL before a planned migration?
+  options: ["To make lookups faster", "So the new address reaches everyone quickly when they switch", "To reduce DNS load"]
+  answer: 1
+  why: Short TTLs make changes propagate quickly - at the cost of more lookups.

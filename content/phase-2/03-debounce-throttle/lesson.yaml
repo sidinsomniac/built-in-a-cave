@@ -1,0 +1,17 @@
+id: p2-l03a
+phase: 2
+order: 3
+number: 3
+part: { n: 1, of: 2 }
+title: "Debounce and Throttle"
+location: The workshop bench
+concepts: [timers, debounce, throttle, leading and trailing calls, preserving this and arguments, fake timers]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: tony
+    line: Every time I move my head, the HUD fires off a thousand target lookups. The servers hate me. More than usual.
+  - who: peter
+    line: Couldn't it just... wait until you stop moving?
+  - who: jarvis
+    line: That is precisely the idea, Mr Parker. Waiting for quiet is called debouncing; letting a burst through at a steady pace is called throttling. Both are asked in nearly every front-end interview.
+clue: The HUD fired **1,200 lookups a second** during a head turn. Debounced, it fires **one**.

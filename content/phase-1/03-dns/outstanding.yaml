@@ -1,0 +1,22 @@
+tier: outstanding
+type: estimate
+title: The Cost of a Tiny TTL
+task: |
+  Stark Industries' authoritative DNS server sees **1,000,000 busy resolvers**,
+  each asking about `expo.stark.com` once whenever its cached answer expires.
+  Estimate the queries per second that reach the authoritative server.
+given:
+  - 1,000,000 resolvers, each always busy
+  - Each refreshes the record once per TTL
+ask:
+  - { id: ttl60, label: "Queries per second with a TTL of 60 s", unit: "per s", answer: 16667 }
+  - { id: ttl3600, label: "Queries per second with a TTL of 3,600 s", unit: "per s", answer: 278 }
+hints:
+  nudge: Each resolver asks once per TTL window. How many windows fit in one second - or how many resolvers ask in any given second?
+  question: If each resolver asks once every 60 seconds, what fraction of them ask in any one second?
+  pseudocode: |
+    queries per second = number of resolvers ÷ TTL in seconds
+  flaw: If your answer is in the millions, you multiplied by the TTL instead of dividing.
+  analogous: |
+    600 people each refill a water bottle once every 10 minutes (600 s):
+    600 ÷ 600 = about 1 refill a second at the tap.

@@ -1,0 +1,14 @@
+phase: 5
+title: The Helicarrier
+arc: Age of Ultron
+summary: Backend system design - the classic distributed-systems rounds, from requirements to deep dives.
+theme: { accent: "#4cc3ff", accent2: "#ffc861", glow: "#0d2233" }
+intro:
+  - who: narrator
+    line: The Helicarrier hangs over the Atlantic, a city of services - chat, payments, video, maps - humming in the dark.
+  - who: fury
+    line: Something is living in our network. It finds every single point of failure we've got, and it pulls.
+  - who: ultron
+    line: (on every screen at once) One database. One queue. One of everything. You built a castle out of dominoes.
+  - who: jarvis
+    line: Then we rebuild it, case by case, so that nothing he pulls brings the rest down.

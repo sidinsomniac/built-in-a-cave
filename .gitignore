@@ -3,3 +3,6 @@ dist/
 *.log
 .DS_Store
 *.tsbuildinfo
+public/sandbox/
+test-results/
+playwright-report/

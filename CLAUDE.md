@@ -15,7 +15,14 @@ Update `docs/HANDOFF.md` in the **same commit** as any change to status, counts,
 - **Build one Phase at a time.** Script it in `docs/story.md`, then build its content, then validate, test, commit and push.
 - The franchise lives in `src/lore/`. This is a personal, non-commercial fan project.
 
+## Before every push
+```bash
+npm run validate-content && npm test && npm run build && CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run e2e
+```
+
 ## Content traps
 - Quote YAML values that contain `: `.
 - No lecture example may solve a core challenge. No hint may contain a solution line of 12 characters or more, or name an exact required design setting.
-- Every case needs `reference.design.json` (🟢 on every scenario) and `naive.design.json` (🔴). Add `alt-*.design.json` when another architecture is equally valid, so rubric checkers don't punish good alternatives.
+- Every case needs a `reference` design (🟢 on every scenario and curveball) and a `naive` one (🔴). **Calibrate by running it**, never by guessing numbers. When another architecture is equally valid, make sure the rubric checkers accept it too.
+- Diagram and checkpoint blocks are YAML: never start a step with a quoted word.
+- The sandbox loads a classic IIFE script (`npm run build:sandbox`), never a module script, because of CORS from an opaque origin.

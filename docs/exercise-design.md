@@ -61,12 +61,11 @@ content/
     lecture.md                  markdown + ```diagram, ```checkpoint, ```tsx, ```sim fences
     notes.md                    the recap page
     <slot>.yaml                 one exercise (formats in §5)
-    <slot>.solution.*           reference solution (code, design graph, numbers…) - never bundled
+    <slot>.solution.*           reference solution for code missions; `solves:` names the starter file it replaces - never bundled
     review.yaml                 Time Vault cards
   cases/<id>/
-    case.yaml                   the case: stations, scenarios, targets, rubric (§6)
-    reference.design.json       Rhodey's reference design (validator + post-pass reveal only)
-    naive.design.json           a naive design that must land 🔴
+    case.yaml                   the case: scenes, scenarios, every station inline, `reference` and `naive` designs (§6)
+    <stationId>.solution.ts     the reference solution of a code station (validator only)
 ```
 
 Ids follow the pattern `p2-l03a` (Phase 2, lesson 3, part a), `p2-r1`, `p2-trial`, `c03` and `b11`. Exercise ids are `<lessonId>.<slot>`.
@@ -77,18 +76,16 @@ Every exercise has `tier`, `type`, `title`, `twist` (for the core), `task` (mark
 ### 5.1 `code`: a code mission
 ```yaml
 type: code
+solves: debounce.ts          # the file the <slot>.solution.* replaces (default: the first file)
 files:                       # starter files shown in the editor (multi-file allowed)
-  App.tsx: |
-    export default function App() { return null }
-entry: App.tsx               # rendered in the sandbox iframe (React) - or omit for pure TS
-mocks:                       # MSW handlers, scripted and deterministic
-  - { method: GET, path: /api/search, delay: [300, 50], respond: fixtures/search.json }
-  - { method: GET, path: /api/search, when: "q=='zz'", status: 500 }
-socket: fixtures/chat.socket.yaml   # optional mock-socket script
-tests: |                     # run inside the iframe; helpers in §8
+  debounce.ts: |
+    export function debounce(fn, wait) { ... }
+entry: App.tsx               # for React missions: rendered by render() with no argument
+mocks:                       # the built-in fetch mock: scripted and deterministic
+  - { method: GET, path: /api/search, delay: [300, 50], json: { results: [] } }   # 1st call 300 ms, then 50 ms
+  - { method: GET, path: /api/search, query: "q=zz", status: 500 }
+tests: |                     # run inside the sandbox; helpers in §8
   test("shows results after typing", async () => { ... })
-a11y: true                   # run axe-core; violations fail the test run
-timer: 90                    # minutes, for timed missions
 ```
 
 ### 5.2 `design`: the design table
@@ -162,10 +159,17 @@ cards: review.yaml             # distilled key points for the Time Vault
 ```
 
 **Case rules the validator enforces:**
-- `reference.design.json` lands 🟢 on **every** scenario and curveball;
-- `naive.design.json` lands 🔴;
-- every rubric `must` is satisfied by the reference;
-- every station is gradable offline and deterministically.
+- the `reference` design lands 🟢 on **every** scenario and curveball;
+- the `naive` design lands 🔴;
+- every rubric `must` is satisfied by the reference, and every rubric and rule id exists;
+- every station has its own reference answer that lands 🟢:
+  - the must-have questions fit within the interrogation budget;
+  - the estimate answers;
+  - the desk's `answer` endpoints;
+  - the chips' sections;
+  - the code station's `<stationId>.solution.ts`.
+
+In practice, stations are written inline in `case.yaml` (see `content/cases/b01-url-shortener/case.yaml`), not as separate files.
 
 ## 7. Zones (how a submission is scored)
 Computed by `src/engine/zones.ts`, the same for every type:
@@ -180,14 +184,16 @@ Computed by `src/engine/zones.ts`, the same for every type:
 ## 8. Test helpers for code missions (`src/runtime/harness.ts`)
 | Helper | Purpose |
 |---|---|
-| `render(<App/>)`, `screen`, `within` | Testing Library |
-| `user` | user-event, already set up |
-| `clock` | fake timers: `clock.tick(ms)`, `clock.runAll()` |
-| `api` | MSW controls: `api.delay(path, ms)`, `api.fail(path, status)`, `api.calls(path)` |
-| `socket` | mock-socket: `socket.send(msg)`, `socket.drop()`, `socket.reconnect()` |
-| `axe()` | accessibility scan; violations fail |
+| `test(name, fn)` | declare a test; they run in order and stop at the first failure |
 | `check(condition, "guiding question")` | fail with a question, never a fix |
-| `source()`, `ast()` | the learner's code, for structural checks |
+| `load("file.ts")` | the learner's module (its exports) |
+| `spy(impl?)` | a function that records `.calls` |
+| `useFakeTimers()` | install fake timers and return the clock: `clock.tick(ms)`, `clock.runAll()` |
+| `await render(el?)`, `screen`, `within`, `waitFor`, `act` | Testing Library and React (with no argument, renders the `entry` file's default export) |
+| `user()` | user-event, wired to the fake clock if one is installed |
+| `api.calls(path?)` | the requests the learner's code made to the fetch mock |
+| `await axe(container?)` | accessibility violations, as a list of strings |
+| (planned) `socket` | mock-socket: `send`, `drop`, `reconnect` |
 
 **Rhodey's code review** (after a pass): AST rules that switch on as their ideas are taught. Examples:
 - index used as a key;

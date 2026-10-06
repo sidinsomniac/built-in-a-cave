@@ -1,0 +1,25 @@
+tier: warmup
+type: sequence
+title: Follow the Question
+task: |
+  Nothing is cached anywhere. Put the steps of resolving `expo.stark.com` in
+  the order they happen.
+items:
+  - The browser checks its own cache
+  - The recursive resolver asks a root server
+  - The root server points to the .com TLD servers
+  - The .com servers point to stark.com's authoritative servers
+  - The authoritative server returns the address and its TTL
+  - The browser connects to the address
+hints:
+  nudge: Start closest to you, and work outwards. Each server only knows enough to point to the next.
+  question: Who knows about every .com name - and who knows only about stark.com?
+  pseudocode: |
+    look nearby first
+    then ask the server that knows the whole internet's top level
+    then the one for .com
+    then the one for stark.com
+    then use the answer
+  flaw: If the authoritative server comes before .com, ask how the resolver would even know where stark.com's servers are.
+  analogous: |
+    Finding a book: the library catalogue → the floor → the shelf → the book.

@@ -1,0 +1,14 @@
+phase: 1
+title: The Cave
+arc: Dark Keynote
+summary: How the web actually works - from a click to a pixel, from scratch.
+theme: { accent: "#ff5a3c", accent2: "#ffc861", glow: "#3a1410" }
+intro:
+  - who: narrator
+    line: The Stark Expo. Ten thousand people in the hall, forty million watching. Tony raises a hand, the big screen shows the Expo app - and the app goes dark. On every phone. Everywhere.
+  - who: narrator
+    line: Then the lights go too. Somewhere below the stage, a blast door slams.
+  - who: tony
+    line: (over a crackling line) Hi. Tony Stark. I'm in the sub-basement server vault, it's pitch black, and I'm told you're the new engineer. Congratulations, you're my favourite person.
+  - who: jarvis
+    line: Good evening. I can patch you through to the vault terminal, but I'm afraid I won't do the work for you - I'll only ask questions. Shall we find out why the Expo is unreachable?

@@ -1,0 +1,12 @@
+phase: 2
+title: The Workshop
+arc: Mark III
+summary: Machine coding - interview-grade utilities and components, built under test.
+theme: { accent: "#ffb43c", accent2: "#ff5a3c", glow: "#3a2810" }
+intro:
+  - who: narrator
+    line: Stark's workshop smells of solder and coffee. On the bench, a half-built suit; on every screen, its heads-up display - a React app.
+  - who: tony
+    line: The HUD stutters in flight. Targets flicker, readings go stale, the controls freeze when I need them most. Fix my software and you can have a desk with a window.
+  - who: jarvis
+    line: Every glitch is a classic bug with a classic cure, sir. I'll ask; our new engineer will build.

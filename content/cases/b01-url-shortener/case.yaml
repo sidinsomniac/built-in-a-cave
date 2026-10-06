@@ -1,0 +1,393 @@
+id: b01
+phase: 5
+order: 1
+title: URL Shortener
+tagline: Turn long links into short ones - and redirect billions of clicks, fast.
+brief: Design a URL shortener, like bit.ly. You've got forty-five minutes. Go.
+scene:
+  - who: fury
+    line: S.H.I.E.L.D. shares thousands of links a day, and every one of them is a mile long. I want them short, I want them fast, and I want to know who clicked.
+  - who: tony
+    line: A URL shortener? I built one at fifteen. In a weekend. It was beautiful. It fell over on Monday.
+  - who: jarvis
+    line: Which is exactly why we'll design it properly. We'll go station by station - questions first, then numbers, then the design. I'll ask; you build.
+outro:
+  - who: rhodey
+    line: Redirects from the cache, clicks on a queue, codes that can't collide. I've audited worse. Much worse. Mostly his.
+  - who: tony
+    line: Hey.
+  - who: fury
+    line: Good. Now do it again - without JARVIS holding your hand.
+
+# Extra settings this case adds to components on the design table.
+settings:
+  service:
+    - key: keygen
+      label: Short-code scheme
+      kind: choice
+      default: none
+      options:
+        - { value: none, label: "(not chosen)" }
+        - { value: counter_base62, label: "Counter, encoded in base62" }
+        - { value: key_pool, label: "Pre-generated key pool" }
+        - { value: hash_truncate, label: "Hash of the URL, first 7 characters" }
+        - { value: random, label: "Random 7 characters" }
+      help: How a new short code is chosen. Some schemes can collide.
+
+scenarios:
+  - id: steady
+    label: A normal day
+    duration: 60
+    workingSetGb: 20
+    classes:
+      - { id: redirect, label: Redirect, op: read, rps: 4000, cacheable: true, lookup: short_code, emits: [{ event: click, ratio: 1 }] }
+      - { id: create, label: Create link, op: write, rps: 40 }
+  - id: viral
+    label: A link goes viral
+    duration: 60
+    workingSetGb: 20
+    hotKey: 0.4
+    shape: [{ at: 0, x: 1 }, { at: 15, x: 3 }]
+    classes:
+      - { id: redirect, label: Redirect, op: read, rps: 4000, cacheable: true, lookup: short_code, emits: [{ event: click, ratio: 1 }] }
+      - { id: create, label: Create link, op: write, rps: 40 }
+
+stations:
+  - id: interrogate
+    kind: interrogate
+    title: Interrogate Pepper
+    timebox: 5
+    budget: 6
+    guide: |
+      Every design round starts with **questions**. The interviewer has hidden requirements,
+      and they only come out if you ask. You have **6 minutes**; each question costs about one.
+      Aim for the questions that change the design: **scale**, **read/write mix**, **features**,
+      and **how fast** it must be. Skip the ones that don't change anything.
+    requirements:
+      - { id: scale, text: "About 100 million new links a month", must: true }
+      - { id: ratio, text: "Reads outnumber writes about 100 to 1", must: true }
+      - { id: latency, text: "Redirects must feel instant: p99 under 50 ms", must: true }
+      - { id: analytics, text: "Count every click (for per-link analytics)", must: true }
+      - { id: retention, text: "Links last 5 years by default; some expire sooner", must: true }
+      - { id: alias, text: "Users may pick a custom alias", must: false }
+      - { id: availability, text: "Redirects must stay up: 99.9% availability", must: false }
+    pool:
+      - { id: q-scale, q: "How many new links are created each month?", a: "About a hundred million. And growing.", reveals: [scale], cost: 1 }
+      - { id: q-ratio, q: "How often is a link clicked compared with how often links are created?", a: "Clicks win by a mile. Roughly a hundred clicks for every link made.", reveals: [ratio], cost: 1 }
+      - { id: q-latency, q: "How fast must a redirect be?", a: "Instant. Under fifty milliseconds for nearly everyone - p99.", reveals: [latency], cost: 1 }
+      - { id: q-analytics, q: "Do we need to track clicks?", a: "Every single one. Fury wants per-link numbers.", reveals: [analytics], cost: 1 }
+      - { id: q-expiry, q: "How long do links last? Can they expire?", a: "Five years by default. Some campaigns set their own expiry.", reveals: [retention], cost: 1 }
+      - { id: q-alias, q: "Can users choose their own short code?", a: "Yes - a custom alias, if it's free.", reveals: [alias], cost: 1 }
+      - { id: q-uptime, q: "What happens if redirects are down for an hour?", a: "Thousands of broken links in briefings. Aim for three nines.", reveals: [availability], cost: 1 }
+      - { id: q-colour, q: "What colour should the website be?", a: "...Stark red, obviously. Was that worth a minute?", reveals: [], cost: 1 }
+      - { id: q-language, q: "Which programming language should we use?", a: "Whatever you like. It won't change your architecture.", reveals: [], cost: 1 }
+      - { id: q-logo, q: "Should short links show the Stark logo when shared?", a: "Marketing will love you. The design won't change.", reveals: [], cost: 1 }
+    hints:
+      nudge: Ask about things that change numbers or boxes on the diagram. Colour and language don't.
+      question: Which of these answers would change how many servers you need, or which components you pick?
+      pseudocode: |
+        ask about: how much is written, how much is read, how fast it must be,
+        what extra features exist, and how long data must live
+      flaw: If a question's answer wouldn't change a single box or number, it wasted a minute.
+      analogous: |
+        Before building a bridge, an engineer asks how many cars, how heavy, and how long it must last -
+        not what colour the railings are.
+
+  - id: estimate
+    kind: estimate
+    title: The Estimation Bench
+    timebox: 5
+    guide: |
+      Turn the requirements into **numbers**. A month is about **2.6 million seconds**
+      (30 × 86,400). Round freely: interviewers want the right **order of magnitude**,
+      not decimals. Within 2× of the reference is 🟢 or 🔵.
+    given:
+      - 100 million new links a month
+      - 100 reads for every write
+      - Each stored link is about 500 bytes
+      - Links are kept for 5 years
+    ask:
+      - { id: writes, label: "New links per second", unit: "per s", answer: 40 }
+      - { id: reads, label: "Redirects per second", unit: "per s", answer: 4000 }
+      - { id: storage, label: "Storage after 5 years", unit: "TB", answer: 3 }
+    hints:
+      nudge: Per month to per second is one division. Storage is links per month × months × bytes each.
+      question: How many seconds are in a month, roughly? And how many months in 5 years?
+      pseudocode: |
+        writes per second = links per month ÷ seconds per month
+        reads per second = writes per second × 100
+        storage = links per month × 60 months × 500 bytes, converted to TB
+      flaw: If storage is in the thousands of TB, check the conversion - 1 TB is 10^12 bytes.
+      analogous: |
+        5 million uploads a month ÷ 2.6 million seconds ≈ 2 uploads a second.
+
+  - id: design
+    kind: design
+    title: The Design Table
+    timebox: 15
+    guide: |
+      Now wire the system. A redirect is a **read**: look up the short code, return the long URL.
+      Creating a link is a **write**. Every redirect also produces a **click event** for analytics.
+
+      I've placed the clients, a load balancer and one service. Add what the requirements need,
+      choose settings, then **Run the simulation**. Watch the replay for the first component to
+      turn red.
+    palette: [cdn, lb, service, cache, queue, worker, kvstore, sqldb]
+    prebuilt:
+      nodes:
+        - { id: clients, kind: client, label: Clients, settings: {}, x: 40, y: 200 }
+        - { id: lb, kind: lb, label: Load balancer, settings: {}, x: 220, y: 200 }
+        - { id: api, kind: service, label: Shortener service, settings: { replicas: 1 }, x: 420, y: 200 }
+      edges:
+        - { from: clients, to: lb }
+        - { from: lb, to: api }
+    scenarios: [steady, viral]
+    targets:
+      p99_ms: { redirect: 50, create: 200 }
+      error_rate: 0.001
+      availability: 0.99
+      cost_per_month: 9000
+      backlog: 1000
+    rubric:
+      must: [cache_hot_reads, async_events, keygen_collision_safe]
+      should: [redundant_services, replicated_store, rate_limit_writes]
+    rules: [no_datastore, spof, cache_without_ttl, sync_side_effects, unindexed_lookup, orphan_queue]
+    hints:
+      nudge: Three pressures - a flood of repeated reads, a click event on every read, and codes that must never clash.
+      question: For a link clicked a million times, how many of those clicks need to reach the database? And does the user need to wait for the click to be recorded?
+      pseudocode: |
+        put something fast between the service and the store, for repeated reads
+        send click events somewhere they can be processed later, and drain it into their own store
+        choose a short-code scheme that is unique by construction
+        give every critical component a second copy
+      flaw: If the database is red in the viral scenario, every redirect is reaching it. If redirects are slow, look for work the user waits on that could happen later.
+      analogous: |
+        A popular café keeps the bestsellers on the counter (no trip to the kitchen), and writes
+        loyalty stamps in a batch at closing time instead of making every customer wait.
+
+  - id: api
+    kind: desk
+    title: The API Desk
+    timebox: 10
+    guide: |
+      Define the **interface**: the endpoints clients call. For each, pick the method, the path,
+      the response status and any options. Two endpoints matter most: **creating** a link and
+      **following** one.
+    # The reference answer (validator only; revealed after a pass).
+    answer:
+      - { method: POST, path: /links, purpose: create, status: 201, options: [auth, rate_limited] }
+      - { method: GET, path: "/:code", purpose: redirect, status: 302, options: [] }
+      - { method: GET, path: "/links/:code/stats", purpose: stats, status: 200, options: [auth] }
+    purposes:
+      - { value: create, label: Create a short link }
+      - { value: redirect, label: Follow a short link }
+      - { value: stats, label: Read a link's click stats }
+      - { value: delete, label: Delete a link }
+    checks:
+      - id: create_post
+        purpose: create
+        must: true
+        expect: { method: [POST], status: [201] }
+        partial: { method: [POST], status: [200] }
+        stone: reality
+        title: Creating a link is a POST that returns 201 Created
+        question: Which HTTP method creates something new - and which status code says "created"?
+        why: POST creates a resource; 201 Created (with the new short URL) tells the client exactly that.
+      - id: redirect_get
+        purpose: redirect
+        must: true
+        expect: { method: [GET], pathParam: true, status: [302] }
+        partial: { method: [GET], pathParam: true, status: [301] }
+        stone: mind
+        title: Following a link is a GET on the short code, answered with a 302
+        question: A browser caches a 301 forever and stops asking you. What happens to your click analytics?
+        why: 302 (temporary) makes every click come back to you, so clicks are counted; 301 is cached by browsers and loses analytics.
+      - id: create_rate_limited
+        purpose: create
+        must: false
+        expect: { options: [rate_limited] }
+        stone: soul
+        title: Link creation is rate limited
+        question: What stops one script from creating ten million links a minute?
+        why: A per-user rate limit (answering 429) protects storage and the key space.
+      - id: stats_auth
+        purpose: stats
+        must: false
+        expect: { method: [GET], options: [auth] }
+        stone: soul
+        title: Click stats need authentication
+        question: Should anyone on the internet see how often your private links are clicked?
+        why: Stats belong to the link's owner; the endpoint should require authentication.
+    hints:
+      nudge: Two endpoints carry the whole product - one makes links, one follows them.
+      question: Which method is safe to repeat and cache - and which status code would let a browser skip your server forever?
+      pseudocode: |
+        create: the method that makes new things, answering "created"
+        follow: the method that reads, with the code in the path, answering with a temporary redirect
+      flaw: If clicks go uncounted, check whether your redirect is cached permanently by browsers.
+      analogous: |
+        A bank lets you open an account (POST /accounts, 201) and view it (GET /accounts/:id) -
+        and never opens an account because someone viewed a page.
+
+  - id: deepdive
+    kind: code
+    title: Deep Dive - Short Codes
+    timebox: 10
+    guide: |
+      Interviewers love to go deep on **key generation**. A counter gives every link a unique
+      number; **base62** (0-9, a-z, A-Z) turns it into a short code. Seven base62 characters hold
+      62^7 ≈ 3.5 trillion codes.
+    solves: shortcode.ts
+    files:
+      shortcode.ts: |
+        const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        export function encode(n: number): string {
+          return String(n);
+        }
+
+        export function decode(code: string): number {
+          return Number(code);
+        }
+    tests: |
+      test("encodes small numbers", () => {
+        const { encode } = load("shortcode.ts");
+        check(encode(0) === "0", `encode(0) gave ${JSON.stringify(encode(0))}. What should zero look like?`);
+        check(encode(61) === "Z", `encode(61) gave ${JSON.stringify(encode(61))}. Which is the last character of the alphabet?`);
+        check(encode(62) === "10", `encode(62) gave ${JSON.stringify(encode(62))}. In base 10, what comes after 9?`);
+      });
+      test("decodes back", () => {
+        const { decode } = load("shortcode.ts");
+        check(decode("10") === 62, `decode("10") gave ${decode("10")}. Is each position worth 62 times the one to its right?`);
+        check(decode("Z") === 61 && decode("0") === 0, "Single characters should decode to their position in the alphabet.");
+      });
+      test("round trips, and big numbers stay short", () => {
+        const { encode, decode } = load("shortcode.ts");
+        for (const n of [1, 7, 3843, 3844, 238328, 56800235583, 3521614606207]) {
+          check(decode(encode(n)) === n, `decode(encode(${n})) gave ${decode(encode(n))}. Is something lost on the way?`);
+        }
+        check(encode(3521614606207).length === 7, "62^7 - 1 should fit in exactly 7 characters.");
+        const seen = new Set();
+        for (let n = 0; n < 5000; n++) seen.add(encode(n));
+        check(seen.size === 5000, "5,000 different numbers should give 5,000 different codes.");
+      });
+    hints:
+      nudge: It's the same as writing a number in base 10 - just with 62 digits instead of 10.
+      question: In base 10, how do you get the last digit of a number, and what's left after removing it?
+      pseudocode: |
+        encode: if n is 0, it's the first character
+            repeatedly: take n mod 62 as a character (put it at the FRONT), then divide n by 62, rounding down
+        decode: start at 0; for each character: multiply by 62 and add its position in the alphabet
+      flaw: If encode(62) gives "01", you built the digits back to front.
+      analogous: |
+        function toBinary(n) {
+          if (n < 2) return String(n);
+          return toBinary(Math.floor(n / 2)) + String(n % 2);
+        }
+
+  - id: curveballs
+    kind: curveballs
+    title: Fury's Curveballs
+    guide: |
+      Your design passed the normal day. Now Fury breaks things, **on your design**. If a curveball
+      fails, adjust the design here and re-run. These are the follow-ups you'll get in real interviews.
+    scenarios:
+      - id: cache_restart
+        label: The cache restarts while a link is going viral
+        duration: 60
+        workingSetGb: 20
+        hotKey: 0.4
+        shape: [{ at: 0, x: 3 }]
+        failures: [{ at: 10, target: cache, kind: restart, down: 3 }]
+        classes:
+          - { id: redirect, label: Redirect, op: read, rps: 4000, cacheable: true, lookup: short_code, emits: [{ event: click, ratio: 1 }] }
+          - { id: create, label: Create link, op: write, rps: 40 }
+      - id: node_loss
+        label: A service node dies at the viral peak
+        duration: 60
+        workingSetGb: 20
+        hotKey: 0.4
+        shape: [{ at: 0, x: 3 }]
+        failures: [{ at: 10, target: service, kind: kill }]
+        classes:
+          - { id: redirect, label: Redirect, op: read, rps: 4000, cacheable: true, lookup: short_code, emits: [{ event: click, ratio: 1 }] }
+          - { id: create, label: Create link, op: write, rps: 40 }
+    targets:
+      p99_ms: { redirect: 80, create: 300 }
+      error_rate: 0.005
+      availability: 0.95
+    hints:
+      nudge: Each curveball removes one thing. What was that thing protecting?
+      question: When the cache comes back empty, where do all those reads go for the next few seconds? Is that component sized for it?
+      pseudocode: |
+        for each curveball: find the first red component in the replay
+        give it headroom (more copies or capacity), or a fallback
+      flaw: If the store goes red after the cache restart, it was only ever sized for the cache's misses.
+      analogous: |
+        A shop with one till closes when the till breaks. Two tills - and staff who can cover - stay open.
+
+  - id: assemble
+    kind: assemble
+    title: The Pitch
+    guide: |
+      Finally, assemble your answer the way you'd present it: drop each statement into its RADIO
+      section. Careful - some statements are **decoys** that an interviewer would mark down.
+    sections:
+      - { id: requirements, label: Requirements }
+      - { id: architecture, label: Architecture }
+      - { id: data, label: Data model }
+      - { id: interface, label: Interface }
+      - { id: optimisations, label: Optimisations }
+    chips:
+      - { id: c1, text: "100M new links a month; about 100 reads per write; p99 redirect under 50 ms", section: requirements }
+      - { id: c2, text: "Track every click; links live 5 years; optional custom aliases", section: requirements }
+      - { id: c3, text: "Load balancer → stateless shortener service (several replicas)", section: architecture }
+      - { id: c4, text: "Cache-aside in front of a replicated key-value store for code → URL lookups", section: architecture }
+      - { id: c5, text: "Click events go on a queue; workers write them to an analytics store", section: architecture }
+      - { id: c6, text: "links(short_code PK, long_url, owner_id, created_at, expires_at)", section: data }
+      - { id: c7, text: "POST /links → 201; GET /:code → 302 to the long URL", section: interface }
+      - { id: c8, text: "Codes from a counter, encoded in base62 - unique by construction", section: optimisations }
+      - { id: c9, text: "Rate-limit link creation per user; TTL on cache entries", section: optimisations }
+      - { id: d1, text: "Store every link in one SQL database with no replicas - it's simpler", decoy: true }
+      - { id: d2, text: "Use the first 7 characters of an MD5 hash; collisions are rare enough to ignore", decoy: true }
+      - { id: d3, text: "Answer redirects with 301 so browsers cache them forever", decoy: true }
+    hints:
+      nudge: Each RADIO section answers one question - what, how it's built, what's stored, how it's called, how it's made better.
+      question: Which statements would make an interviewer frown - and why?
+      pseudocode: |
+        requirements: the numbers and features you were given
+        architecture: the boxes and arrows
+        data model: what a stored record looks like
+        interface: the endpoints
+        optimisations: what makes it unique, fast and safe
+      flaw: If a decoy is in your answer, ask what happens at scale, on a collision, or to analytics.
+      analogous: |
+        A good pitch for a bridge: traffic numbers, the structure, the materials, the on-ramps, and the safety features - never "we'll skip the second support, it's simpler".
+
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Clients, settings: {}, x: 40, y: 200 }
+    - { id: lb, kind: lb, label: Load balancer, settings: { replicas: 2 }, x: 220, y: 200 }
+    - { id: api, kind: service, label: Shortener service, settings: { replicas: 16, keygen: counter_base62, rate_limit: true }, x: 420, y: 200 }
+    - { id: cache, kind: cache, label: Link cache, settings: { replicas: 2, memory_gb: 16, ttl_s: 86400 }, x: 640, y: 80 }
+    - { id: links, kind: kvstore, label: Links store, settings: { partitions: 4, replicas: 3 }, x: 640, y: 220 }
+    - { id: clicks, kind: queue, label: Click events, settings: {}, x: 640, y: 360 }
+    - { id: workers, kind: worker, label: Analytics workers, settings: { replicas: 8 }, x: 840, y: 360 }
+    - { id: analytics, kind: kvstore, label: Analytics store, settings: { partitions: 6, replicas: 2 }, x: 1040, y: 360 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: api }
+    - { from: api, to: cache }
+    - { from: api, to: links }
+    - { from: api, to: clicks }
+    - { from: clicks, to: workers }
+    - { from: workers, to: analytics }
+
+naive:
+  nodes:
+    - { id: clients, kind: client, label: Clients, settings: {}, x: 40, y: 200 }
+    - { id: api, kind: service, label: Server, settings: { replicas: 1 }, x: 240, y: 200 }
+    - { id: db, kind: sqldb, label: Database, settings: { read_replicas: 0, indexes: "id" }, x: 440, y: 200 }
+  edges:
+    - { from: clients, to: api }
+    - { from: api, to: db }

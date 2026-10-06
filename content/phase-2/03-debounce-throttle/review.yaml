@@ -1,0 +1,12 @@
+- id: which-tool
+  type: choice
+  q: Search-as-you-type should query the server once the user pauses. Which tool?
+  options: ["Debounce", "Throttle", "Neither"]
+  answer: 0
+  why: One call after the burst ends - that's debounce.
+- id: arrow-this
+  type: choice
+  q: Why does a debounce return a regular `function` rather than an arrow function?
+  options: ["Arrow functions are slower", "So `this` is the object the wrapper was called on", "Arrow functions can't take arguments"]
+  answer: 1
+  why: An arrow function captures `this` from where it was written, not from how it's called.

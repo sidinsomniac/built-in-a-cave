@@ -1,0 +1,16 @@
+id: p1-l03
+phase: 1
+order: 3
+number: 3
+title: "DNS: Names Into Numbers"
+location: The vault's dusty DNS console
+concepts: [domain names, IP addresses, resolvers, root servers, TLD servers, authoritative servers, TTL, caching]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: tony
+    line: Packets are leaving the building. They're just going to the wrong place. Like a very fast, very confused intern.
+  - who: peter
+    line: (on speaker) Sorry, quick question - how does `expo.stark.com` even turn into a number in the first place?
+  - who: jarvis
+    line: An excellent question, Mr Parker. The answer is a system called DNS, and if it's been tampered with, every visitor goes exactly where they're told - to the wrong place.
+clue: The Expo's DNS record was changed **last Tuesday** - and its TTL was set to almost zero, so the bad answer reached everyone at once.

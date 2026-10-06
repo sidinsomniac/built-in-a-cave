@@ -1,0 +1,12 @@
+# Everyone who can speak in a scene. `who:` in a scene must be a key here.
+jarvis: { name: JARVIS, portrait: "🔷" }
+tony: { name: Tony Stark, portrait: "🦾" }
+pepper: { name: Pepper Potts, portrait: "📋" }
+fury: { name: Nick Fury, portrait: "🕶️" }
+rhodey: { name: Rhodey, portrait: "🛡️" }
+happy: { name: Happy Hogan, portrait: "📟" }
+peter: { name: Peter Parker, portrait: "🕸️" }
+shuri: { name: Shuri, portrait: "💜" }
+ultron: { name: Ultron, portrait: "🤖" }
+hammer: { name: Justin Hammer, portrait: "🕴️" }
+narrator: { name: "", portrait: "🎞️" }

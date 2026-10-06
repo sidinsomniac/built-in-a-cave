@@ -1,0 +1,86 @@
+tier: warmup
+type: code
+title: The HUD Waits for Quiet
+solves: debounce.ts
+task: |
+  Write `debounce(fn, wait)` in `debounce.ts`. It returns a new function that,
+  when called, waits `wait` milliseconds and then calls `fn` - but every new
+  call **restarts** the wait, and only the **last** call's arguments are used.
+  Keep `this` too.
+
+  ```ts
+  const lookup = debounce(findTarget, 100);
+  lookup("left"); lookup("up"); lookup("right");
+  // ...100 ms of quiet later: findTarget("right") runs once
+  ```
+files:
+  debounce.ts: |
+    export function debounce<T extends unknown[]>(fn: (...args: T) => void, wait: number) {
+      return (...args: T) => fn(...args);
+    }
+tests: |
+  test("runs once, after the quiet period", () => {
+    const clock = useFakeTimers();
+    const { debounce } = load("debounce.ts");
+    const fn = spy();
+    const lookup = debounce(fn, 100);
+    lookup("left");
+    lookup("up");
+    lookup("right");
+    check(fn.calls.length === 0, "Three calls arrived in a burst. Should anything run before 100 ms of quiet?");
+    clock.tick(99);
+    check(fn.calls.length === 0, "At 99 ms, has the quiet period finished yet?");
+    clock.tick(1);
+    check(fn.calls.length === 1, `After 100 ms of quiet, fn ran ${fn.calls.length} times. How many times should a burst trigger it?`);
+    check(fn.calls[0][0] === "right", `fn received ${JSON.stringify(fn.calls[0]?.[0])}. Whose arguments should win - the first call's or the last call's?`);
+  });
+
+  test("every call restarts the wait", () => {
+    const clock = useFakeTimers();
+    const { debounce } = load("debounce.ts");
+    const fn = spy();
+    const lookup = debounce(fn, 100);
+    lookup(1);
+    clock.tick(80);
+    lookup(2);
+    clock.tick(80);
+    check(fn.calls.length === 0, "160 ms have passed, but the last call was only 80 ms ago. Has the quiet period finished?");
+    clock.tick(20);
+    check(fn.calls.length === 1 && fn.calls[0][0] === 2, "100 ms after the LAST call, fn should run once with that call's arguments.");
+  });
+
+  test("keeps this, and each wrapper has its own timer", () => {
+    const clock = useFakeTimers();
+    const { debounce } = load("debounce.ts");
+    let seen = null;
+    const suit = { name: "Mark III", ping: debounce(function () { seen = this; }, 50) };
+    suit.ping();
+    clock.tick(50);
+    check(seen === suit, "Inside fn, `this` should be the object the debounced function was called on. Does an arrow function keep the caller's `this`?");
+    const a = spy();
+    const b = spy();
+    const da = debounce(a, 50);
+    const db = debounce(b, 50);
+    da();
+    db();
+    clock.tick(50);
+    check(a.calls.length === 1 && b.calls.length === 1, "Two separate debounced functions each ran once? Or do they share one timer?");
+  });
+hints:
+  nudge: The wrapper needs to remember one thing between calls - the pending timer - so each new call can cancel it and start a fresh one.
+  question: Where can a variable live so every call of the returned function sees the same one, but a second debounced function gets its own?
+  pseudocode: |
+    debounce(fn, wait):
+        remember: the pending timer (none yet)
+        return a function (not an arrow function) that takes any arguments:
+            cancel the pending timer, if there is one
+            start a new timer for `wait` ms that calls fn with this call's `this` and arguments
+  flaw: If fn runs three times, the old timers were never cancelled. If `this` is undefined, the returned function is an arrow function.
+  analogous: |
+    function lastWordAfter(ms, say) {
+      let pending;
+      return function (word) {
+        clearTimeout(pending);
+        pending = setTimeout(() => say(word), ms);
+      };
+    }

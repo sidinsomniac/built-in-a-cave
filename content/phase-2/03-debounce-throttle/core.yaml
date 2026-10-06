@@ -1,0 +1,112 @@
+tier: core
+type: code
+title: A Steady Pulse That Never Drops the Last Beat
+twist: edge case - the final call during a window must still run
+solves: throttle.ts
+task: |
+  Write `throttle(fn, wait)` in `throttle.ts`. The returned function runs `fn`
+  **at most once every `wait` ms**:
+
+  - The first call runs **immediately**, and starts a `wait`-long window.
+  - Calls during the window don't run; the **latest** one is remembered.
+  - When the window ends, if a call was remembered, it runs (with its own
+    `this` and arguments) and a new window starts. If not, the throttle goes
+    idle, and the next call will run immediately again.
+
+  ```ts
+  const track = throttle(updatePosition, 100);
+  track(1);   // runs now
+  track(2);   // remembered...
+  track(3);   // ...replaces 2
+  // at 100 ms: updatePosition(3) runs
+  ```
+files:
+  throttle.ts: |
+    export function throttle<T extends unknown[]>(fn: (...args: T) => void, wait: number) {
+      let last = 0;
+      return function (this: unknown, ...args: T) {
+        const now = Date.now();
+        if (now - last >= wait) {
+          last = now;
+          fn.apply(this, args);
+        }
+      };
+    }
+tests: |
+  test("the first call runs immediately", () => {
+    useFakeTimers();
+    const { throttle } = load("throttle.ts");
+    const fn = spy();
+    const track = throttle(fn, 100);
+    track(1);
+    check(fn.calls.length === 1 && fn.calls[0][0] === 1, "Should the very first call have to wait?");
+  });
+
+  test("the latest call in a window runs when the window ends", () => {
+    const clock = useFakeTimers();
+    const { throttle } = load("throttle.ts");
+    const fn = spy();
+    const track = throttle(fn, 100);
+    track(1);
+    clock.tick(30);
+    track(2);
+    clock.tick(30);
+    track(3);
+    check(fn.calls.length === 1, "Calls inside the window shouldn't run straight away. How many have run?");
+    clock.tick(40);
+    check(fn.calls.length === 2, `At 100 ms fn has run ${fn.calls.length} times. The window ended with a call waiting - what happens to it?`);
+    check(fn.calls[1][0] === 3, `The trailing run used ${JSON.stringify(fn.calls[1]?.[0])}. Which call should be remembered - the first one in the window, or the latest?`);
+  });
+
+  test("quiet after a trailing run means no extra runs, and the next call is immediate", () => {
+    const clock = useFakeTimers();
+    const { throttle } = load("throttle.ts");
+    const fn = spy();
+    const track = throttle(fn, 100);
+    track(1);
+    track(2);
+    clock.tick(100);
+    clock.tick(500);
+    check(fn.calls.length === 2, `After a long quiet spell fn ran ${fn.calls.length} times. Should a quiet window run anything?`);
+    track(4);
+    check(fn.calls.length === 3 && fn.calls[2][0] === 4, "After the throttle has gone idle, should the next call wait?");
+  });
+
+  test("a call during the trailing window waits for that window", () => {
+    const clock = useFakeTimers();
+    const { throttle } = load("throttle.ts");
+    const fn = spy();
+    const track = throttle(fn, 100);
+    track(1);
+    track(2);
+    clock.tick(100);
+    clock.tick(50);
+    track(5);
+    check(fn.calls.length === 2, "The trailing run at 100 ms started a new window. Should a call at 150 ms run immediately?");
+    clock.tick(50);
+    check(fn.calls.length === 3 && fn.calls[2][0] === 5, "When that second window ends at 200 ms, what should happen to the call that arrived during it?");
+  });
+
+  test("this travels with the call", () => {
+    useFakeTimers();
+    const { throttle } = load("throttle.ts");
+    let seen = null;
+    const hud = { update: throttle(function () { seen = this; }, 100) };
+    hud.update();
+    check(seen === hud, "Is `this` inside fn the object the throttled function was called on?");
+  });
+hints:
+  nudge: The starter forgets calls that arrive inside the window. Remember the latest one, and give the window an end - a timer - where you check whether something is waiting.
+  question: When the window's timer fires, what are the two possible states - is a call waiting or not - and what should each do?
+  pseudocode: |
+    remember: whether a window is open (a timer), and the latest waiting call (none yet)
+    a helper opens a window: after `wait` ms,
+        if a call is waiting: run it (its own `this` and args), clear it, and open another window
+        otherwise: mark the throttle idle
+    the returned function:
+        if no window is open: run fn now, then open a window
+        otherwise: remember this call as the waiting one (replacing any older one)
+  flaw: If the last call is lost, nothing runs when the window ends. If calls at 150 ms run immediately, the trailing run didn't open a new window.
+  analogous: |
+    A lift that leaves the moment the first person arrives, and on its way back
+    picks up whoever is waiting - leaving again straight away if someone is.
