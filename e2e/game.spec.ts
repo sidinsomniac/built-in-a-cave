@@ -13,6 +13,21 @@ async function setCode(page: Page, code: string) {
   await page.keyboard.insertText(code);
 }
 
+test.describe("with motion", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+  test("JARVIS boots up once, can be skipped, and story lines type out", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("boot")).toBeVisible();
+    await page.getByTestId("boot").click();
+    await expect(page.getByTestId("boot")).toHaveCount(0);
+    await expect(page.getByTestId("cutscene")).toContainText("Incoming transmission");
+    await page.getByTestId("scene-next").click(); // finishes typing the line
+    await expect(page.getByTestId("cutscene")).toContainText("Everywhere.");
+    await page.reload();
+    await expect(page.getByTestId("boot")).toHaveCount(0);
+  });
+});
+
 test("the home screen shows the Phases, with one story at a time", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("cutscene")).toHaveCount(1);

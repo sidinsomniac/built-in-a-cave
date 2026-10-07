@@ -197,7 +197,9 @@ function ReferenceCompare({ c, design }: { c: Case; design: Design }) {
   );
 }
 
+/** The replay: worst-case latency and errors over the run. Hover or drag to scrub through it. */
 function Sparkline({ sim, target }: { sim: SimResult; target?: number }) {
+  const [at, setAt] = useState<number | null>(null);
   const w = 300;
   const h = 70;
   const maxP = Math.max(target ?? 0, ...sim.timeline.map((t) => Math.min(t.p99, 1000)), 1);
@@ -205,12 +207,30 @@ function Sparkline({ sim, target }: { sim: SimResult; target?: number }) {
   const y = (v: number) => h - 4 - (Math.min(v, 1000) / maxP) * (h - 10);
   const p99 = sim.timeline.map((t, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(t.p99).toFixed(1)}`).join(" ");
   const errs = sim.timeline.map((t, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${(h - 4 - Math.min(1, t.errorRate) * (h - 10)).toFixed(1)}`).join(" ");
+  const scrub = (clientX: number, rect: DOMRect) => setAt(Math.max(0, Math.min(sim.timeline.length - 1, Math.round(((clientX - rect.left) / rect.width) * (sim.timeline.length - 1)))));
+  const point = at === null ? null : sim.timeline[at];
   return (
-    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={`Replay of ${sim.scenarioId}: latency and errors over time`}>
-      {target !== undefined && <line x1="0" x2={w} y1={y(target)} y2={y(target)} stroke="var(--risky)" strokeDasharray="4 4" strokeWidth="1" />}
-      <path d={p99} fill="none" stroke="var(--solid)" strokeWidth="2" />
-      <path d={errs} fill="none" stroke="var(--failing)" strokeWidth="2" />
-    </svg>
+    <div>
+      <svg
+        className="spark"
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Replay of ${sim.scenarioId}: latency and errors over time`}
+        onPointerMove={(e) => scrub(e.clientX, e.currentTarget.getBoundingClientRect())}
+        onPointerLeave={() => setAt(null)}
+      >
+        {target !== undefined && <line x1="0" x2={w} y1={y(target)} y2={y(target)} stroke="var(--risky)" strokeDasharray="4 4" strokeWidth="1" />}
+        <path d={p99} fill="none" stroke="var(--accent)" strokeWidth="2" />
+        <path d={errs} fill="none" stroke="var(--failing)" strokeWidth="2" />
+        {at !== null && <line x1={x(at)} x2={x(at)} y1="0" y2={h} stroke="var(--accent2)" strokeWidth="1" />}
+      </svg>
+      <div className="scrub">
+        {point
+          ? `t=${point.t}s · p99 ${point.p99 >= 10_000 ? "never answers" : `${Math.round(point.p99)} ms`} · errors ${(point.errorRate * 100).toFixed(1)}%${point.hottest ? ` · busiest: ${point.hottest} (${Math.round(point.utilisation * 100)}%)` : ""}`
+          : "Hover the replay to scrub through the run."}
+      </div>
+    </div>
   );
 }
 
@@ -223,7 +243,7 @@ function SimReport({ report, labels, nodeLabels }: { report: DesignReport; label
           <div className="row between">
             <b>{labels[sim.scenarioId] ?? sim.scenarioId}</b>
             <span className="muted small">
-              <span style={{ color: "var(--solid)" }}>━ p99 latency</span> · <span style={{ color: "var(--failing)" }}>━ errors</span>
+              <span style={{ color: "var(--accent)" }}>━ p99 latency</span> · <span style={{ color: "var(--failing)" }}>━ errors</span>
             </span>
           </div>
           <Sparkline sim={sim} />

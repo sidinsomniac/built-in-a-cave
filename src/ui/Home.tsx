@@ -14,8 +14,9 @@ export function Home() {
   const firstUnseen = PHASES.find((p) => !scenesSeen[`phase:${p.phase}`])?.phase;
   return (
     <div>
-      <div className="card" style={{ background: "linear-gradient(135deg, rgba(255,90,60,.16), rgba(255,200,97,.05))" }}>
-        <h1>⚙️ {GAME_NAME}</h1>
+      <div className="card hero">
+        <div className="tagline">Stark Industries · engineering readiness program</div>
+        <h1>{GAME_NAME}</h1>
         <p className="soft" style={{ maxWidth: "70ch" }}>
           From "what happens when I type a URL?" to leading senior system design and machine-coding rounds. Every answer is <b>built</b> - code,
           designs, numbers - and lands in a zone: 🟢 Optimal, 🔵 Solid, 🟡 Risky or 🔴 Failing. JARVIS only ever asks questions.
@@ -48,7 +49,7 @@ export function Home() {
               const prog = cases[c.id];
               const completed = prog ? Object.entries(prog.completed) : [];
               return (
-                <a key={c.id} className="tile" href={`#/case/${c.id}`} data-testid={`case-${c.id}`}>
+                <a key={c.id} className="tile case" href={`#/case/${c.id}`} data-testid={`case-${c.id}`}>
                   <div className="kind">Case {c.id.toUpperCase()}</div>
                   <h3>🏗 {c.title}</h3>
                   <div className="muted small">{c.tagline}</div>

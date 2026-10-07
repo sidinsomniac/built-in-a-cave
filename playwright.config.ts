@@ -6,6 +6,8 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL: "http://localhost:4174",
+    // Animations off by default, so tests never wait on motion. One test turns them back on.
+    contextOptions: { reducedMotion: "reduce" },
     launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined },
   },
   webServer: {

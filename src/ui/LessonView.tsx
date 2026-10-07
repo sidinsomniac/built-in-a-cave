@@ -5,7 +5,7 @@ import { useGame } from "../engine/store";
 import { TIER_LABEL, type Exercise } from "../engine/types";
 import { passes, ZONES } from "../engine/zones";
 import { CodeBoard, EstimateBoard, OutcomePanel, PredictBoard, SequenceBoard, type Outcome } from "./boards";
-import { Cutscene, HintLadder, Lecture, Markdown } from "./common";
+import { Cutscene, HintLadder, Lecture, Markdown, SceneBeat } from "./common";
 
 function ExerciseView({ ex }: { ex: Exercise }) {
   const record = useGame((s) => s.exercises[ex.id]);
@@ -105,6 +105,7 @@ export function LessonView({ id }: { id: string }) {
       {done && lesson.clue && (
         <div className="card" data-testid="clue">
           🔍 <b>Clue discovered:</b> <Markdown text={lesson.clue} />
+          {lesson.outro.length > 0 && <SceneBeat lines={lesson.outro} />}
         </div>
       )}
     </div>

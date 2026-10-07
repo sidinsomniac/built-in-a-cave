@@ -2,6 +2,9 @@
 // Every action has a keyboard-friendly control too (add, connect, edit, delete).
 import {
   Background,
+  BaseEdge,
+  getBezierPath,
+  type EdgeProps,
   Controls,
   Handle,
   Position,
@@ -41,7 +44,10 @@ function summary(node: DesignNode, specs: SettingSpec[]): string {
 function ComponentNode({ data }: NodeProps<Node<FlowData>>) {
   const spec = COMPONENTS[data.node.kind];
   return (
-    <div className={`flow-node ${data.selected ? "selected" : ""} ${data.heat && data.heat !== "optimal" ? `hot-${data.heat}` : ""}`} data-testid={`node-${data.node.id}`}>
+    <div
+      className={`flow-node ${data.selected ? "selected" : ""} ${data.heat && data.heat !== "optimal" ? `hot-${data.heat}` : ""} ${data.load && loadZone(data.load.util) === "optimal" ? "load-optimal" : ""}`}
+      data-testid={`node-${data.node.id}`}
+    >
       {data.node.kind !== "client" && <Handle type="target" position={Position.Left} />}
       <div className="title">
         {spec.icon} {data.node.label ?? spec.name}
@@ -67,13 +73,39 @@ export function LoadBar({ load }: { load: NodeLoad }) {
         <i style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
       <span>
-        {load.util >= 99 ? "down" : `${pct}%`} · {short(load.demand)}/{short(load.capacity)} {load.unit}
+        {load.util >= 99 ? "down" : `${pct}%`} · {short(load.demand)}/{short(load.capacity)} {load.unit.replace("requests", "req")}
       </span>
     </div>
   );
 }
 
 const nodeTypes = { component: ComponentNode };
+
+const ZONE_COLOUR: Record<Zone, string> = { optimal: "#4ade80", solid: "#60a5fa", risky: "#facc15", failing: "#ff5d6c" };
+const REDUCED_MOTION = typeof window !== "undefined" && (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+
+/** A wire that, after a run, carries glowing packets: more and faster when the box it feeds is busy. */
+function PacketEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }: EdgeProps<Edge<{ util?: number }>>) {
+  const [path] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  const util = data?.util;
+  if (util === undefined) return <BaseEdge id={id} path={path} style={{ strokeDasharray: "5 5" }} />;
+  const colour = ZONE_COLOUR[loadZone(util)];
+  const count = util > 1 ? 4 : util > 0.6 ? 3 : util > 0.2 ? 2 : 1;
+  const duration = Math.max(0.7, 2.4 - Math.min(util, 1.2) * 1.4);
+  return (
+    <>
+      <BaseEdge id={id} path={path} style={{ stroke: colour, strokeOpacity: 0.6, strokeWidth: 1.5 }} />
+      {!REDUCED_MOTION &&
+        Array.from({ length: count }, (_, i) => (
+          <circle key={i} r={util > 1 ? 3.5 : 2.6} fill={colour} className="packet" style={{ color: colour }}>
+            <animateMotion dur={`${duration}s`} begin={`${(i * duration) / count}s`} repeatCount="indefinite" path={path} />
+          </circle>
+        ))}
+    </>
+  );
+}
+
+const edgeTypes = { packet: PacketEdge };
 
 /** Re-frames the canvas whenever a box is added or removed, so nothing lands off-screen. */
 function FitOnGrow({ count }: { count: number }) {
@@ -116,7 +148,10 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [design, heat, loads, selected, readOnly],
   );
-  const edges: Edge[] = useMemo(() => design.edges.map((e) => ({ id: `${e.from}->${e.to}`, source: e.from, target: e.to, animated: true, deletable: !readOnly })), [design, readOnly]);
+  const edges: Edge[] = useMemo(
+    () => design.edges.map((e) => ({ id: `${e.from}->${e.to}`, type: "packet", source: e.from, target: e.to, deletable: !readOnly, data: { util: loads?.[e.to]?.util } })),
+    [design, loads, readOnly],
+  );
 
   const removeNode = (id: string) => {
     update({ nodes: design.nodes.filter((n) => n.id !== id), edges: design.edges.filter((e) => e.from !== id && e.to !== id) });
@@ -178,6 +213,7 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

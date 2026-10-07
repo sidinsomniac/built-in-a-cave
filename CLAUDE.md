@@ -16,6 +16,7 @@ Update `docs/HANDOFF.md` in the **same commit** as any change to status, counts,
 - **Teach before you test.** Assume zero prior knowledge: a plain explanation, a worked example and a checkpoint before any exercise needs an idea. Design tables get a guided build (`steps:`) at Mark I, and every component has a Field Manual page.
 - **Scaffold comments fade, difficulty climbs.** Warm-up starters get guiding-question comments, cores an outline plus the twist, and outstandings only the goal. The ⭐ must be harder than the 🔥, and every lesson concept must be practised (`covers:`). Rules: `docs/exercise-design.md` §2.
 - **Build one Phase at a time.** Script it in `docs/story.md`, then build its content, then validate, test, commit and push.
+- **The look is the JARVIS HUD** (GDD §11): cyan holographic panels, gold highlights, and red only for alerts. Motion is hand-made in CSS, SVG or Canvas, with no animation library, and **every animation honours `prefers-reduced-motion`**.
 - The franchise lives in `src/lore/`. This is a personal, non-commercial fan project.
 
 ## Before every push

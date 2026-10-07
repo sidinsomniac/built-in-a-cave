@@ -28,8 +28,13 @@ export function Gauge({ zone, caption }: { zone: Zone; caption?: ReactNode }) {
   const seg = c / 4;
   return (
     <div className="gauge" data-testid="gauge" data-zone={zone}>
-      <svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true">
-        <g transform="rotate(-90 46 46)">
+      <svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true" key={zone}>
+        <g className="ticks">
+          {Array.from({ length: 24 }, (_, i) => (
+            <line key={i} x1="46" y1="2" x2="46" y2={i % 6 === 0 ? 8 : 5} stroke="var(--accent)" strokeOpacity="0.5" transform={`rotate(${i * 15} 46 46)`} />
+          ))}
+        </g>
+        <g className="ring" transform="rotate(-90 46 46)">
           {order.map((z, i) => (
             <circle
               key={z}
@@ -45,8 +50,10 @@ export function Gauge({ zone, caption }: { zone: Zone; caption?: ReactNode }) {
             />
           ))}
         </g>
-        <circle cx="46" cy="46" r="15" fill={`var(--${zone})`} opacity="0.85" />
-        <circle cx="46" cy="46" r="8" fill="#fff" opacity="0.7" />
+        <g className="core">
+          <circle cx="46" cy="46" r="15" fill={`var(--${zone})`} opacity="0.85" />
+          <circle cx="46" cy="46" r="8" fill="#fff" opacity="0.7" />
+        </g>
       </svg>
       <div className="readout">
         <b>
@@ -67,7 +74,7 @@ export function AuditList({ items, passed }: { items: AuditItem[]; passed: boole
       <h3>🛡️ {AUDITOR}'s audit</h3>
       <ul className="audit" data-testid="audit">
         {items.map((item, i) => (
-          <li key={i} className={item.status}>
+          <li key={i} className={item.status} style={{ "--i": i } as React.CSSProperties}>
             <span className="mark" aria-label={item.status}>
               {AUDIT_ICON[item.status]}
             </span>
@@ -113,20 +120,42 @@ export function HintLadder({ hints, used, onReveal, cost }: { hints: Hints; used
   );
 }
 
-/** A click-through story scene. Opens by itself the first time; replay any time. */
+/** Types a line out like a HUD transmission. `instant` (or reduced motion) shows it whole. */
+function useTypewriter(text: string, instant: boolean) {
+  const reduce = typeof window !== "undefined" && (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  const [n, setN] = useState(instant || reduce ? text.length : 0);
+  useEffect(() => {
+    if (instant || reduce) {
+      setN(text.length);
+      return;
+    }
+    setN(0);
+    const t = setInterval(() => setN((v) => Math.min(text.length, v + 2)), 18);
+    const stop = setTimeout(() => clearInterval(t), text.length * 9 + 100);
+    return () => {
+      clearInterval(t);
+      clearTimeout(stop);
+    };
+  }, [text, instant, reduce]);
+  return { shown: text.slice(0, n), done: n >= text.length, finish: () => setN(text.length) };
+}
+
+/** A click-through story scene in a holographic comms window. Opens by itself the first time; replay any time. */
 export function Cutscene({ id, lines, title, autoOpen = true }: { id: string; lines: SceneLine[]; title?: string; autoOpen?: boolean }) {
   const seen = useGame((s) => !!s.scenesSeen[id]);
   const seeScene = useGame((s) => s.seeScene);
   const [open, setOpen] = useState(autoOpen && !seen && lines.length > 0);
   const [i, setI] = useState(0);
+  const line = lines[Math.min(i, lines.length - 1)];
+  const typed = useTypewriter(line?.line ?? "", !open);
   if (!lines.length) return null;
   const close = () => {
     setOpen(false);
     setI(0);
     seeScene(id);
   };
-  const line = lines[i];
   const who = CAST[line.who] ?? { name: line.who, portrait: "🎞️" };
+  const next = () => (!typed.done ? typed.finish() : i + 1 < lines.length ? setI(i + 1) : close());
   return (
     <>
       <button className="btn small ghost" onClick={() => setOpen(true)} data-testid="story-replay">
@@ -134,27 +163,33 @@ export function Cutscene({ id, lines, title, autoOpen = true }: { id: string; li
       </button>
       {open && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={title ?? "Story"} data-testid="cutscene">
-          <div className="modal">
-            {title && <div className="muted small">{title}</div>}
-            <div className="scene-line" style={{ marginTop: 8 }}>
+          <div className="modal" onClick={next}>
+            <div className="comms-head">
+              <span className="live">Incoming transmission</span>
+              <span>{title}</span>
+            </div>
+            <div className="scene-line" style={{ marginTop: 14 }}>
               <div className="portrait" aria-hidden="true">
                 {who.portrait}
               </div>
               <div>
                 {who.name && <div className="who">{who.name}</div>}
-                <div>{line.line}</div>
+                <div className="scene-text" aria-live="polite">
+                  {typed.shown}
+                  {!typed.done && <span className="caret" aria-hidden="true" />}
+                </div>
               </div>
             </div>
             <div className="row between" style={{ marginTop: 16 }}>
-              <span className="muted small">
-                {i + 1} / {lines.length}
+              <span className="muted small" style={{ fontFamily: "var(--mono)" }}>
+                {String(i + 1).padStart(2, "0")} / {String(lines.length).padStart(2, "0")}
               </span>
-              <div className="row">
+              <div className="row" onClick={(e) => e.stopPropagation()}>
                 <button className="btn small ghost" onClick={close} data-testid="scene-skip">
                   Skip
                 </button>
-                <button className="btn primary small" onClick={() => (i + 1 < lines.length ? setI(i + 1) : close())} autoFocus>
-                  {i + 1 < lines.length ? "Next ▸" : "Let's build"}
+                <button className="btn primary small" onClick={next} autoFocus data-testid="scene-next">
+                  {!typed.done ? "▸▸" : i + 1 < lines.length ? "Next ▸" : "Let's build"}
                 </button>
               </div>
             </div>

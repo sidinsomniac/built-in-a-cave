@@ -218,6 +218,21 @@ scripts/
 
 **An optional Lab, later:** a local `docker-compose` (Redis, Postgres, a queue) for watching real stampedes and replication lag. It's never required.
 
+### The look: the JARVIS HUD
+- **Palette:** cyan holographic panels (`--accent #4fd8ff`) on deep blue-black, gold (`#ffc861`) for highlights, red only for alerts and the failing zone. Fonts are Rajdhani for headings and JetBrains Mono for readouts, self-hosted through `@fontsource`.
+- **Panels:** corner brackets and a soft glow on an opaque base, so text stays readable over the backdrop.
+- **The backdrop** (`src/ui/hud/Backdrop.tsx`): a single hand-drawn Canvas 2D layer with a perspective grid, drifting particles and a radar sweep, plus CSS scanlines. It is deterministic (no `Math.random`) and draws one still frame under reduced motion.
+- **Motion:**
+  - the boot sequence (`hud/Boot.tsx`, once per session, skippable);
+  - story lines that type out in a "comms" window;
+  - the Arc Reactor gauge spinning up and locking onto the zone;
+  - audit items stamping in one by one;
+  - the "suit upgrade" toast on level-up (`hud/LevelUp.tsx`);
+  - packets flowing along design-table wires after a run, more and faster when the box they feed is busy, coloured by its load;
+  - overloaded boxes flickering red;
+  - a replay scrubber on every simulation chart.
+- **Rules:** no animation library. Everything is CSS, SVG or Canvas. **Every animation respects `prefers-reduced-motion`**, and the e2e tests run with reduced motion, except one test that checks the boot and typing.
+
 ## 12. Verification
 - **The content validator** (`scripts/validate-content.mjs`):
   - code: solutions pass, starters fail, hints don't leak, and no lecture code solves a core challenge;
