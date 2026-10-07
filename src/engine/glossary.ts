@@ -61,7 +61,8 @@ export function undefinedAcronyms(text: string): string[] {
   const found = new Set<string>();
   for (const m of prose.matchAll(/(?<![\w.-])([A-Z][A-Z0-9]{1,4})s?(?![\w-])/g)) {
     const word = m[1];
-    if (!known.has(word) && !COMMON_CAPS.has(word) && !/^\d/.test(word) && !/^[A-Z]\d+$/.test(word)) found.add(word);
+    const roman = /^[IVXL]+$/.test(word); // suit Marks: Mark III, Mark XLII
+    if (!known.has(word) && !COMMON_CAPS.has(word) && !roman && !/^\d/.test(word) && !/^[A-Z]\d+$/.test(word)) found.add(word);
   }
   return [...found];
 }

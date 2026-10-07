@@ -1,0 +1,43 @@
+tier: core
+type: quiz
+title: How Long Can It Be Stale?
+twist: trade-off - every TTL buys speed with staleness, and some data mustn't be cached
+covers: [TTL, cache-aside]
+task: |
+  Pick a TTL for each piece of data in the Stark Expo app.
+questions:
+  - q: The list of countries in the sign-up form.
+    options: ["Don't cache it", "Seconds to a minute", "Hours or a day"]
+    answer: 2
+    why: It almost never changes. A long TTL makes nearly every read a hit.
+  - q: The final check that a seat is still free, at the moment the visitor pays.
+    options: ["Don't cache it", "Seconds to a minute", "Hours or a day"]
+    answer: 0
+    why: It must be exact right now - a stale "free" sells the same seat twice. Read it fresh.
+  - q: Where a popular short link points (links almost never change once created).
+    options: ["Don't cache it", "Seconds to a minute", "Hours or a day"]
+    answer: 2
+    why: Rarely changes, read constantly - ideal for a long TTL (exactly the URL shortener's cache).
+  - q: The "trending now" list on the homepage, recomputed every minute.
+    options: ["Don't cache it", "Seconds to a minute", "Hours or a day"]
+    answer: 1
+    why: It's only fresh for a minute anyway, so caching for up to a minute loses nothing.
+  - q: A visitor's ticket count, shown right after they buy another ticket.
+    options: ["Don't cache it", "Seconds to a minute", "Hours or a day"]
+    answer: 0
+    why: People expect to see their own change at once. A stale count makes them think the purchase failed.
+  - q: The photo on the Expo's homepage, which changes once a season.
+    options: ["Don't cache it", "Seconds to a minute", "Hours or a day"]
+    answer: 2
+    why: Changes almost never. A long TTL - and when it does change, give the new photo a new address.
+hints:
+  nudge: For each one, ask how often it changes - and what happens if someone sees an old value.
+  question: Would a stale value cost money, confuse the user, or just be slightly out of date?
+  pseudocode: |
+    must be exact right now, or the user just changed it -> don't cache
+    changes every minute or so -> seconds to a minute
+    almost never changes -> hours or a day
+  flaw: If you cached the seat check, imagine two visitors both told the last seat is free.
+  analogous: |
+    A shop window display can stay up for a week. The price on the till must be right
+    at the moment you pay.

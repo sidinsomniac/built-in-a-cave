@@ -1,0 +1,27 @@
+id: p3-l01
+phase: 3
+order: 1
+number: 1
+title: "One Server, and Its Limits"
+location: Stark Tower's grid control room
+concepts: [capacity, utilisation, queueing and latency, headroom, peak traffic]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: tony
+    line: The whole tower's grid is controlled by one service. On one machine. Who approved that?
+  - who: jarvis
+    line: It worked perfectly at lunchtime, sir. At dusk, every floor turns its lights on at once.
+  - who: killian
+    line: (on the lobby screen) A common problem. Extremis would simply run that machine harder.
+  - who: pepper
+    line: It's already running as hard as it can, Mr Killian. That's the problem.
+  - who: jarvis
+    line: Let's find out exactly how hard one server can run - and what happens just before it breaks.
+clue: The control server ran at **97% busy** all evening, and requests waited **about 40 times longer** than at lunchtime.
+outro:
+  - who: tony
+    line: Ninety-seven percent. One server, running my tower, at ninety-seven percent.
+  - who: jarvis
+    line: And Mr Killian's plan was to run it hotter, sir.
+  - who: pepper
+    line: We're not buying Extremis. Fix it with more copies and some headroom.

@@ -25,7 +25,7 @@ npm run validate-content && npm test && npm run build && CHROMIUM_PATH="/Applica
 ```
 
 ## Content traps
-- Quote YAML values that contain `: `.
+- Quote YAML values that contain `: `, or that start with `*`, `&`, `!`, `%` or `@` (for example a `clue:` that opens with Markdown bold).
 - No lecture example may solve a core challenge. No hint may contain a solution line of 12 characters or more, or name an exact required design setting.
 - Every case needs a `reference` design (🟢 on every scenario and curveball) and a `naive` one (🔴). **Calibrate by running it**, never by guessing numbers. When another architecture is equally valid, make sure the rubric checkers accept it too.
 - Diagram, checkpoint and scene blocks are YAML: never start a step with a quoted word.

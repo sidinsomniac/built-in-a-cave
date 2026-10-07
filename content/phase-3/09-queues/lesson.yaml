@@ -1,0 +1,29 @@
+id: p3-l09
+phase: 3
+order: 9
+number: 9
+title: "Queues and Workers"
+location: The alert room
+concepts: [asynchronous work, queues and workers, backlog, sizing workers, logs and queues]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: jarvis
+    line: Every time a sensor runs hot, the grid sends an alert email. Inside the request.
+  - who: tony
+    line: And?
+  - who: jarvis
+    line: The email provider is slow tonight, sir. So every floor panel is waiting on it. And freezing.
+  - who: rhodey
+    line: So my control panel waits on an email server in another country? That's not a design. That's a hostage situation.
+  - who: jarvis
+    line: Then let's set the panels free. The alert can be sent a moment later - by someone else.
+clue: A queue worker named **"U"** is quietly draining the alert queue - and **nobody on the team created it**.
+outro:
+  - who: jarvis
+    line: The panels are fast again, sir. But there's an extra worker on the alert queue. It's called "U".
+  - who: tony
+    line: Who started it?
+  - who: jarvis
+    line: I can't find out, sir. When I tried to stop it... it stopped itself first.
+  - who: tony
+    line: (a long pause) Keep an eye on that.

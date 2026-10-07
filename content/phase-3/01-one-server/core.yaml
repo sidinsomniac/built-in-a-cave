@@ -1,0 +1,39 @@
+tier: core
+type: quiz
+title: The 90% Trap
+twist: misconception - "90% busy is only a bit slower than 50%"
+covers: [utilisation, queueing and latency, headroom]
+task: |
+  Killian insists a server is "wasted" below 100%. Answer each question to prove him wrong.
+questions:
+  - q: The same server, first at 50% busy, then at 90% busy. Its worst-case waiting time at 90% is...
+    options: ["About the same", "About twice as long", "Many times longer"]
+    answer: 2
+    why: Queues grow much faster than load. On the design table it's about 4.5× idle at 50% and about 28× at 90% - over six times worse.
+  - q: To keep requests fast, the busiest moment of the day should leave each server about...
+    options: ["0-10% busy", "70-80% busy", "100% busy"]
+    answer: 1
+    why: Enough headroom for bursts and a lost copy, without paying for machines that sit idle.
+  - q: Traffic doubles, and you double the number of copies. Each copy's utilisation...
+    options: ["Doubles", "Stays the same", "Halves"]
+    answer: 1
+    why: Twice the work shared across twice the copies - each one is exactly as busy as before.
+  - q: 2,000 requests arrive each second, and each takes 100 ms to finish. About how many are in progress at any moment?
+    options: ["20", "200", "2,000"]
+    answer: 1
+    why: In progress = arrival rate × time each takes = 2,000 × 0.1 = 200 (Little's law).
+  - q: A server is at 110% - more arrives every second than it can finish. What happens over the next minute?
+    options: ["It catches up when traffic dips for a second", "The queue keeps growing until requests time out or are rejected", "It speeds up to match"]
+    answer: 1
+    why: Over 100%, there's never spare time to clear the queue. It only grows, until requests fail.
+hints:
+  nudge: Picture a supermarket checkout at each level of busy.
+  question: When a server is nearly full, what happens to the requests that arrive in a small burst?
+  pseudocode: |
+    utilisation = arriving / capacity
+    waiting grows slowly at first, then explodes near 100%
+    in progress = arrival rate x time each takes
+  flaw: If you think 90% is "only a bit slower", re-read the waiting-time table in the lesson.
+  analogous: |
+    A motorway at half capacity flows freely. At 90% capacity, one driver braking
+    causes a jam that lasts long after the braking stopped.

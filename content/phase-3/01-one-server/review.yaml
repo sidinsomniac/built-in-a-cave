@@ -1,0 +1,14 @@
+- id: why-headroom
+  type: choice
+  q: Why do engineers aim for about 75% busy instead of 100%?
+  options: ["Electricity is cheaper", "Waiting time explodes as a server nears full, and bursts need room", "Servers can't reach 100%"]
+  answer: 1
+  why: Queues grow much faster than load near 100%. Headroom keeps latency low and absorbs bursts.
+  covers: [headroom, queueing and latency]
+- id: size-for-peak
+  type: choice
+  q: Which traffic number should you size servers for?
+  options: ["The daily average", "The peak, plus a spare copy", "The quietest hour"]
+  answer: 1
+  why: The system must survive its busiest moment, even with one copy down.
+  covers: [peak traffic, capacity]

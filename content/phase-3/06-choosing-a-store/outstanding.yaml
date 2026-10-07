@@ -1,0 +1,39 @@
+tier: outstanding
+type: tradeoff
+title: Where Should the Links Live?
+covers: [key-value stores, relational databases]
+task: |
+  You're about to design a URL shortener. It stores **100 million new links a month**, each a
+  short code pointing to a long URL. Every redirect looks up **one code** - about 4,000 a second,
+  12,000 at peak. Links never refer to each other, and the data must spread across many machines
+  as it grows.
+
+  Which store should hold the links? Make the call, then tick every reason that supports it.
+options:
+  - A key-value store
+  - A SQL database
+answer: 0
+reasons:
+  - { text: "Every read is a lookup by one key - the short code", right: true }
+  - { text: "It spreads keys across partitions, so it grows by adding machines", right: true }
+  - { text: "The links have no relationships that need joins or multi-row transactions", right: true }
+  - { text: "SQL databases can't hold a few terabytes", right: false }
+  - { text: "SQL databases can't find a row by its key quickly", right: false }
+  - { text: "Key-value stores can never lose data", right: false }
+why: |
+  The access pattern is one key in, one value out, at a scale that needs many machines - a
+  key-value store's home ground. A SQL database with an index on the code would work too, and
+  many teams start there; it just brings joins and transactions this data doesn't need, and
+  spreading writes across machines takes more work.
+hints:
+  nudge: Look at how the data is read, whether it has relationships, and how it must grow.
+  question: For each reason - is it actually true? Several sound right and aren't.
+  pseudocode: |
+    read pattern: one key -> one value
+    relationships: none
+    growth: across many machines
+    check each reason is true AND relevant
+  flaw: If you ticked "SQL can't find a row by its key quickly", remember the primary key is indexed.
+  analogous: |
+    A coat check needs one ticket number to find one coat - a wall of numbered hooks, not a
+    library catalogue. The catalogue could do it; it's just more than the job needs.

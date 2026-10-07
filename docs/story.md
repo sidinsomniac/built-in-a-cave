@@ -119,6 +119,17 @@ A helpful auto-scaler starts making decisions nobody approved: the first whisper
 
 **Trial:** keep the reactor stable through an escalating, multi-failure night.
 
+#### Phase 3 beats, scripted for the first five lessons (the "basics" B1 relies on)
+**Cold open (the Phase intro).** Stark Tower goes dark floor by floor at dusk. A.I.M.'s smooth consultant, **Aldrich Killian**, is already in the lobby with a pitch: "Extremis" - an auto-scaler that "just runs everything hotter". Pepper isn't buying. Tony wants to know what actually broke.
+
+| Lesson | Scene hook | Mid-lesson beat | Clue | Outro |
+|---|---|---|---|---|
+| 1 One Server and Its Limits | The tower's grid control service runs on **one** machine. At dusk, demand spikes and it crawls. | Killian: "Run it at 100%. You're paying for it." JARVIS: at 100%, the queue never empties. | The control server ran at **97% busy** all evening; requests waited **40×** longer than normal. | Tony: "One server, running my tower?" JARVIS: Killian's plan was to run it *hotter*. Pepper: "We're not buying Extremis." |
+| 3 Load Balancers | Tony adds copies behind a load balancer. One copy dies, and a quarter of the lights still flicker. | Peter: "How does the balancer know a copy is dead?" JARVIS: "It asks. Unless someone told it not to." | The Extremis config had **switched off health checks** "for performance". | Rhodey: "Who touches a balancer's health checks?" JARVIS: the change was signed by an automated account, "EXT-U". Tony: "Never heard of it." |
+| 4 Caching Pt1 | Every floor's panel asks the database for the same sensor readings, hundreds of times a second. | Happy: "So the cache is like keeping snacks at my desk?" JARVIS: "Precisely - until the snacks go stale." | **99% of reads asked for the same 200 sensors**; a cache absorbs nearly all of them. | Shuri (on a call): "You were asking the database the same question 40,000 times a second? Embarrassing." Tony: "I've been called worse. By you." |
+| 6 Databases Pt1 | A.I.M. put every kind of data (sensor streams, invoices, user photos) in one giant SQL table, and sold Stark the licence. | Pepper: "Why not one database for everything? It's simpler." JARVIS: simpler to buy, not to run. | Sensor readings, a time series, were crammed into **the invoice database**. | Pepper cancels the A.I.M. licence on speaker. Killian: "You'll be back." |
+| 9 Queues | Grid alerts are emailed *inside* the request; when the email provider slows, every control panel freezes. | Rhodey: "So the panel waits on an email server in another country?" JARVIS: "It did. Until now." | A queue consumer named **"U"** is draining alerts. No one on the team created it. | JARVIS: "I can't find who started worker U, sir." Tony: "Then shut it down." JARVIS: "...It shut itself down first." (The first whisper of Ultron.) |
+
 ### Phase 4: S.H.I.E.L.D. Briefings (*Insight*)
 Fury recruits you to rebuild S.H.I.E.L.D.'s front ends: feeds, chat, documents, video briefings. But something inside is leaking:
 - tokens in local storage;

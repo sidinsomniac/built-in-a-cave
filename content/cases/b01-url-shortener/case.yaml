@@ -22,7 +22,7 @@ outro:
     line: Good. Now do it again - without JARVIS holding your hand.
 
 # Lessons that teach this case's parts (Phase 3). Once all are passed, the briefing is a skippable recap.
-requires: []
+requires: [p3-l01, p3-l03, p3-l04a, p3-l06a, p3-l09]
 
 # Extra settings this case adds to components on the design table.
 settings:

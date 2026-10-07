@@ -1,0 +1,82 @@
+tier: warmup
+type: design
+title: Push One Server Until It Breaks
+covers: [capacity, utilisation, headroom]
+task: |
+  The tower's control service runs on one copy. Dusk ramps traffic up in steps:
+  **300, 600, 900, then 1,200 requests a second**. Watch where it breaks, then fix it.
+palette: [service, kvstore]
+prebuilt:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 160 }
+    - { id: control, kind: service, label: Grid control, settings: { replicas: 1 }, x: 280, y: 160 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 520, y: 160 }
+  edges:
+    - { from: clients, to: control }
+    - { from: control, to: readings }
+scenarios:
+  - id: dusk
+    label: Dusk, as every floor lights up
+    duration: 40
+    workingSetGb: 1
+    shape: [{ at: 0, x: 1 }, { at: 10, x: 2 }, { at: 20, x: 3 }, { at: 30, x: 4 }]
+    classes:
+      - { id: read, label: Read the grid, op: read, rps: 300 }
+targets:
+  p99_ms: 60
+  error_rate: 0.001
+rubric: { must: [], should: [] }
+rules: [no_datastore]
+steps:
+  - id: watch
+    title: Watch it break
+    goal: Run the simulation and watch the control service's load bar.
+    teach: |
+      The evening ramps up in four steps of 10 seconds. After the run, hover the replay chart to
+      scrub through time: it shows how slow the worst requests were, and which part was busiest.
+    done: [{ ran: true }]
+    hint: Press Run the simulation, then hover over the replay chart.
+  - id: when
+    title: Find the breaking point
+    goal: Work out which step of the evening pushed the server past 100%.
+    teach: |
+      One copy of a service handles about **1,000 requests a second**. Utilisation is
+      **arriving ÷ capacity**. Over 100%, more work arrives than can be done, and requests fail.
+    ask:
+      q: Traffic steps through 300, 600, 900 and 1,200 requests a second. At which step does one copy go over 100%?
+      options: ["300", "600", "900", "1,200"]
+      answer: 3
+      why: 1,200 ÷ 1,000 = 120%. At 900 it was 90% busy - not failing yet, but already slow.
+    done: [{ ran: true }]
+    hint: Divide each step by 1,000.
+  - id: headroom
+    title: Add headroom
+    goal: Keep the control service under 80% busy at the busiest moment of the evening.
+    teach: |
+      More copies share the work. Keep **headroom** - aim for about 80% at the peak at most,
+      because waiting time explodes as a server nears full.
+    ask:
+      q: The peak is 1,200 requests a second. Each copy should do at most 800. How many copies?
+      number: 2
+      unit: copies
+      why: 1,200 ÷ 800 = 1.5, rounded up to 2.
+    done: [{ survives: dusk, kinds: [service], max: 0.8 }]
+    hint: Select the control service and raise its Replicas.
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 160 }
+    - { id: control, kind: service, label: Grid control, settings: { replicas: 2 }, x: 280, y: 160 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 520, y: 160 }
+  edges:
+    - { from: clients, to: control }
+    - { from: control, to: readings }
+hints:
+  nudge: The build plan walks you through it. The key number is what one copy can do.
+  question: At the busiest moment, how many requests arrive per second - and how many can one copy finish?
+  pseudocode: |
+    utilisation = arriving / capacity
+    copies = peak / (capacity x 0.8), rounded up
+  flaw: If it still fails, check you're sizing for the last step of the evening, not the first.
+  analogous: |
+    A lift carries 10 people a minute. At 12 people a minute a queue forms that never clears.
+    Two lifts carry 20 - and the queue vanishes.

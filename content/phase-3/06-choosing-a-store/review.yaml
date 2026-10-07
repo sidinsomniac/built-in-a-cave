@@ -1,0 +1,14 @@
+- id: kv-when
+  type: choice
+  q: Which data suits a key-value store best?
+  options: ["Orders that must add up with payments", "Sessions looked up by token on every request", "Text search across exhibits"]
+  answer: 1
+  why: One key in, one value out, very fast - exactly a session lookup.
+  covers: [key-value stores]
+- id: fk
+  type: choice
+  q: What does a foreign key do?
+  options: ["Encrypts a column", "Points a row to a row in another table, and keeps that link valid", "Speeds up text search"]
+  answer: 1
+  why: It records a relationship, like ticket → visitor, and the database enforces it.
+  covers: [keys and relationships]

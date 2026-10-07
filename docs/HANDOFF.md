@@ -41,10 +41,10 @@ The core rules:
 | `npm install` | Install dependencies (Node 20+). |
 | `npm run dev` | Builds the sandbox runtime (`predev`), then starts Vite. |
 | `npm run build:sandbox` | Builds `public/sandbox/sandbox.js`, the classic-script test harness the sandbox iframe loads. It runs automatically before `dev` and `build`. The file is git-ignored. |
-| `npm test` | Vitest unit tests. **41** pass at the moment: the simulation, rules, zones, the station graders, the URL shortener calibration, the guided build (a beginner's step-by-step progression), load readouts, the reference comparison and the glossary linker, and the briefing, quiz and trade-off graders. |
-| `npm run validate-content` | Proves every lesson, exercise and case in jsdom, using the real harness. **51** checks pass at the moment: 7 lessons and 21 exercises (Phase 1 lessons 1–5 and Briefing Room I, plus the Phase 2 debounce lesson), 1 case with 8 stations (a parts briefing, then the 7 interview stations, including the guided build), 3 Phase intros, and a Field Manual page for each of the 10 components. The validator also enforces the writing rules (line length, glossary jargon, an outro on every lesson), scaffold comments by tier, the difficulty ramp and concept coverage. |
+| `npm test` | Vitest unit tests. **42** pass at the moment: the simulation, rules, zones, the station graders, the URL shortener calibration, the guided build (a beginner's step-by-step progression), load balancer health checks, load readouts, the reference comparison and the glossary linker, and the briefing, quiz and trade-off graders. |
+| `npm run validate-content` | Proves every lesson, exercise and case in jsdom, using the real harness. **72** checks pass at the moment: 12 lessons and 36 exercises (Phase 1 lessons 1–5 and Briefing Room I, the Phase 2 debounce lesson, and the five Phase 3 basics), 1 case with 8 stations (a parts briefing, then the 7 interview stations, including the guided build), 3 Phase intros, and a Field Manual page for each of the 10 components. The validator also enforces the writing rules (line length, glossary jargon, an outro on every lesson), scaffold comments by tier, the difficulty ramp and concept coverage. |
 | `npm run build` | Sandbox, then typecheck (`tsc -b`), then the production build. |
-| `npm run e2e` | Playwright: builds, then serves on port 4174. On a Mac with Chrome, set `CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. **6** pass at the moment: the boot sequence and typed story (with motion), the home screen, a lesson, a code mission, the new formats (a quiz, a guided design table in a lesson, a trade-off), and the URL shortener case played end to end through JARVIS's guided build, with sizes that differ from the reference. Tests run with `reducedMotion: "reduce"` by default (`playwright.config.ts`). |
+| `npm run e2e` | Playwright: builds, then serves on port 4174. On a Mac with Chrome, set `CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. **7** pass at the moment: the boot sequence and typed story (with motion), the home screen, a lesson, a code mission, the new formats (a quiz, a guided design table in a lesson, a trade-off), the skippable briefing once the Phase 3 basics are passed (from a seeded save), and the URL shortener case played end to end through JARVIS's guided build, with sizes that differ from the reference. Tests run with `reducedMotion: "reduce"` by default (`playwright.config.ts`). |
 
 Before every push, run all four: `npm run validate-content && npm test && npm run build && npm run e2e`.
 
@@ -116,6 +116,14 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
     - TLS and HTTPS: a sequence, a certificate-chain quiz, and a TLS-termination trade-off ⭐.
     - Briefing Room I: the full timeline, a "what breaks" quiz, and a latency budget.
     - The story runs from the blackout to "Hammer's contractor".
+  - **Phase 3, the basics B1 relies on** (*Extremis*, with Aldrich Killian joining the cast):
+    - 1, One Server and Its Limits: push one server until it breaks (design); the 90% trap (quiz); size the tower for its worst night (estimate).
+    - 3, Load Balancers: where requests go (quiz); a dead copy with no health checks (design); layer 4 vs layer 7 for WebSockets (trade-off).
+    - 4, Caching part 1: put a cache in front of the database (design); how long can it be stale? (quiz); memory for the hot links (estimate).
+    - 6, Databases part 1, choosing a store: a home for every kind of data (quiz); model the Expo in SQL (quiz); key-value or SQL for the links (trade-off).
+    - 9, Queues and Workers: stop waiting on email (design); the alert storm (design); queue or log (trade-off).
+    - The story ends on the first whisper of Ultron: a worker named "U".
+    - B1's `requires:` lists these five lessons.
   - Phase 2, lesson 3, part 1 (debounce and throttle): three code missions (a debounce, a throttle that never drops the last call, and a race-safe debounced search).
   - **Case B1, the URL shortener:** a parts briefing (Mark I), then all seven stations, at Mark I, III and VII.
 - The validator proves all of it (reference designs land 🟢, naive ones 🔴, solutions pass, starters fail, no hint leaks, diagram and checkpoint YAML parses).
@@ -134,14 +142,16 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
 2. ✅ **Plain words and a richer story:** a glossary with term tooltips, writing rules (enforced), re-voiced scenes, mid-lesson beats and outros. **Scaffold comments and the difficulty ramp:** enforced by tier. The debounce ⭐ is now a race-safe search box (code), replacing the timeline prediction, which became a review card.
 3. ✅ **The JARVIS HUD look:** cyan holographic panels, a Canvas backdrop, the boot sequence, typed scenes, gauge and audit motion, the level-up toast, packets flowing through the design table, and a replay scrubber.
 4. ✅ **A parts briefing** before B1 (Mark I), which becomes a skippable recap once the Phase 3 basics are passed.
-5. ✅ **Phase 1, lessons 1–5 and Briefing Room I** (beats scripted in `story.md` first). Next: **the Phase 3 basics** that B1 relies on (one server, load balancers, caching, databases and queues), then set B1's `requires:`.
+5. ✅ **Phase 1, lessons 1–5 and Briefing Room I** (beats scripted in `story.md` first).
+6. ✅ **The Phase 3 basics** that B1 relies on (one server, load balancers, caching part 1, choosing a store, queues), with B1's `requires:` set.
 
 **After that, in order:**
-1. **Phase 1, The Cave:** the rest of the lessons (6–13), R2–R3 and the Trial.
-2. **Phase 2, The Workshop.** Add mock-socket and Rhodey's code-review rules first.
-3. **The rest of Phase 3:** add the component models it needs (CDN edge logic is there; add read replicas for SQL and an SSE/WebSocket gateway).
-4. **Phase 4:** build the blueprint and performance lab first.
-5. Then **Phases 5 and 6**, with the Brief, incident drills and spot-the-flaw.
+1. **Owner playtest** of the reworked slice: Phase 1 from the start, then Phase 3, then the URL shortener at Mark I.
+2. **Phase 1, The Cave:** the rest of the lessons (6–13), R2–R3 and the Trial.
+3. **Phase 2, The Workshop.** Add mock-socket and Rhodey's code-review rules first.
+4. **The rest of Phase 3** (2, 4 part 2, 5, 6 parts 2–3, 7, 8, 10–16, R1–R3, the Trial): add the component models it needs (CDN edge logic is there; add read replicas for SQL and an SSE/WebSocket gateway).
+5. **Phase 4:** build the blueprint and performance lab first.
+6. Then **Phases 5 and 6**, with the Brief, incident drills and spot-the-flaw.
 
 ## 7. Rules that always apply
 - The mentor never gives answers; feedback is questions, pseudocode, flaw pointers or analogous examples.
@@ -159,6 +169,7 @@ Newest first. One line per session or meaningful change: the date, where, and wh
 
 | Date | Where | What changed |
 |---|---|---|
+| 2026-10-08 | Claude Code desktop session | **The Phase 3 basics:** lessons 1, 3, 4 part 1, 6 part 1 and 9, with the beats scripted in `story.md` first, and Killian added to the cast. The simulation now models load balancer health checks (with the `no_health_checks` rule), and the cache readout explains short TTLs. Added a `healthy` step check (error rate and backlog), and set B1's `requires:`. Counts: 42 unit, 72 content checks, 7 e2e (§3, §4, §6, §10). |
 | 2026-10-08 | Claude Code desktop session | **Phase 1, batch 1:** lessons 1, 2, 4 and 5, and Briefing Room I, with the beats scripted in `story.md` first. **New formats:** `quiz`, `tradeoff`, and `design` inside lessons (the shared `DesignBench`, and `benches` in the save). Added networking glossary terms. The Notes tab hides when a lesson has none. Counts: 41 unit, 51 content checks, 6 e2e (§3, §4, §6). |
 | 2026-10-08 | Claude Code desktop session | **The parts briefing.** Added a new `briefing` station kind (Mark I only), with Field Manual cards and one question per part, graded by first-try answers. Added a case-level `requires:` that turns the briefing into a skippable recap once those lessons are passed. B1 now opens with six parts. Counts: 39 unit, 31 content checks (§3, §4, §6). |
 | 2026-10-08 | Claude Code desktop session | **The JARVIS HUD.** A new stylesheet (cyan holographic panels, Rajdhani and JetBrains Mono via `@fontsource`), a Canvas backdrop, the boot sequence, comms-window scenes that type out, gauge spin-up, stamped audits, a level-up toast and an XP ring. Packet-flow edges on the design table, a replay scrubber, and lesson outros under the clue. The e2e tests default to reduced motion; one new test covers the boot and typing. Counts: 5 e2e (§3, §4, §6). |
@@ -182,3 +193,4 @@ Newest first. One line per session or meaningful change: the date, where, and wh
 8. **Calibrate guided steps against the simulation's real numbers.** Link creation adds 40 requests/s, so "4,000 ÷ 1,000 = 4 copies" lands at 101%. Numeric questions accept answers within 25% either way (`numberClose`), and the `survives` check uses the real load, so the readout teaches the last step. `src/engine/steps.test.ts` replays a beginner's build step by step; extend it for every new guided build.
 9. **Simultaneous fake timers fire in the order they were scheduled.** A stale-response test once had the old answer and the new request both due at 500 ms, so the "old" answer landed first and was legitimately shown. Leave clear gaps between racing events.
 10. **Translucent panels over an animated backdrop look like noise behind text.** Give every panel an opaque base (`rgba(3, 10, 17, 0.92)`) under its glow gradient.
+11. **A YAML value that starts with `*` is an alias, so quote it.** A `clue: **99% of reads...**` line broke the whole content load. The same applies to `&`, `!`, `%`, `@` and a leading backtick.

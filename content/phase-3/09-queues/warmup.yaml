@@ -1,0 +1,96 @@
+tier: warmup
+type: design
+title: Stop Waiting on Email
+covers: [asynchronous work, queues and workers, sizing workers]
+task: |
+  Every panel request also writes an alert record for the email system - inside the request.
+  Move that work onto a queue, so the panels never wait for it.
+palette: [service, queue, worker, kvstore]
+prebuilt:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 180 }
+    - { id: lb, kind: lb, label: Front door, settings: {}, x: 220, y: 180 }
+    - { id: grid, kind: service, label: Grid service, settings: { replicas: 6 }, x: 420, y: 180 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 640, y: 180 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: grid }
+    - { from: grid, to: readings }
+scenarios:
+  - id: evening
+    label: A busy evening - every update raises an alert
+    duration: 30
+    workingSetGb: 1
+    classes:
+      - { id: update, label: Panel update, op: read, rps: 3000, emits: [{ event: alert, ratio: 1 }] }
+targets:
+  p99_ms: 40
+  error_rate: 0.001
+  backlog: 1000
+rubric: { must: [async_events], should: [] }
+rules: [no_datastore, sync_side_effects, orphan_queue]
+steps:
+  - id: watch
+    title: See the waiting
+    goal: Run the simulation and read the Grid readings store's load bar.
+    teach: |
+      Each panel update also **writes an alert** to the same store, before the panel gets its answer.
+      Select **Grid readings** after the run: its readout shows the writes on top of the reads.
+    ask:
+      q: 3,000 panel updates a second, each writing one alert before it answers. How many alert writes a second land on the store?
+      number: 3000
+      unit: writes/s
+      why: One per update - 3,000 writes a second on a store that should be busy answering reads.
+    done: [{ ran: true }]
+    hint: Run it, then select the Grid readings store.
+  - id: queue
+    title: Do it later
+    goal: Send alerts through a queue to workers, which save them in their own store.
+    teach: |
+      Wire **Grid service → Queue → Workers → a new Key-value store** for alerts. The service drops a
+      message on the queue and answers at once; the workers save alerts in the background.
+
+      Keep the wire from the service to **Grid readings** - panels still read their data there.
+    done: [{ rubric: async_events }, { clear: sync_side_effects }, { clear: orphan_queue }]
+    hint: Add a Queue, Workers and a Key-value store, and chain them from the service.
+  - id: workers
+    title: Enough workers
+    goal: Keep the queue's backlog near zero, with no part over 100% busy.
+    teach: |
+      Each worker handles about **2,000 messages a second**. If fewer are handled than arrive, the
+      backlog grows. And the alert store takes every saved alert as a write - about **3,000 writes a
+      second per partition**.
+    ask:
+      q: 3,000 alerts arrive each second and each worker handles 2,000. How many workers, at least?
+      number: 2
+      unit: workers
+      why: 3,000 ÷ 2,000 = 1.5, so 2 workers keep up.
+    done: [{ healthy: evening, backlog: 1000 }, { survives: evening }]
+    hint: Select the Workers and raise Replicas; check the alert store's load bar too.
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 180 }
+    - { id: lb, kind: lb, label: Front door, settings: {}, x: 220, y: 180 }
+    - { id: grid, kind: service, label: Grid service, settings: { replicas: 6 }, x: 420, y: 180 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 640, y: 80 }
+    - { id: alerts, kind: queue, label: Alert queue, settings: {}, x: 640, y: 260 }
+    - { id: senders, kind: worker, label: Alert workers, settings: { replicas: 2 }, x: 840, y: 260 }
+    - { id: log, kind: kvstore, label: Alert store, settings: { partitions: 2, replicas: 2 }, x: 1040, y: 260 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: grid }
+    - { from: grid, to: readings }
+    - { from: grid, to: alerts }
+    - { from: alerts, to: senders }
+    - { from: senders, to: log }
+hints:
+  nudge: The panels should only wait for what they need - their readings. Everything else goes on the queue.
+  question: After your change, which store takes the alert writes - and who writes them?
+  pseudocode: |
+    service -> readings store (reads stay)
+    service -> queue -> workers -> alert store (alerts move here)
+    workers = alerts per second / 2,000, rounded up
+  flaw: If the queue's backlog keeps growing, the workers are too few - or not wired to the queue.
+  analogous: |
+    A restaurant till takes your order and hands you a ticket at once; the kitchen cooks
+    behind the scenes. Nobody makes you stand at the till while the chef works.

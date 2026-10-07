@@ -1,0 +1,27 @@
+tier: outstanding
+type: estimate
+title: How Much Memory for the Hot Links?
+covers: [working set, hit rate]
+task: |
+  Size the cache for the URL shortener you'll design later. You want about **80% of reads**
+  to be hits, and you'll run **2 copies** of the cache so one can fail.
+given:
+  - 100 million links are stored
+  - The most popular 20% of links get about 80% of all clicks
+  - Each cached link (code plus long URL plus overhead) takes about 500 bytes
+  - 1 GB is 1,000,000,000 bytes
+ask:
+  - { id: hot, label: "Memory to hold the popular 20% (one copy)", unit: "GB", answer: 10 }
+  - { id: total, label: "Total memory across both copies", unit: "GB", answer: 20 }
+hints:
+  nudge: Which links must be in the cache for 80% of clicks to be hits?
+  question: How many links are in the popular 20%, and how many bytes do they take?
+  pseudocode: |
+    hot links = 100 million x 20%
+    bytes = hot links x 500
+    GB = bytes / 1,000,000,000
+    total = GB x 2 copies
+  flaw: If you got 50 GB, you cached every link - the 80% hit rate only needs the popular fifth.
+  analogous: |
+    A cinema snack bar stocks the 10 snacks that make 80% of sales, not all 200 the
+    supplier sells - a small fridge, most customers served.

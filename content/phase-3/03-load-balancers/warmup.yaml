@@ -1,0 +1,34 @@
+tier: warmup
+type: quiz
+title: Where Does the Request Go?
+covers: [load balancing, round robin, least connections]
+task: |
+  The tower's load balancer has three copies behind it: A, B and C. Predict where requests go.
+questions:
+  - q: Round robin. Requests 1, 2, 3, 4 and 5 arrive. Where does request 5 go?
+    options: ["A", "B", "C"]
+    answer: 1
+    why: A, B, C, A, B - the fifth request lands on B.
+  - q: Least connections. A has 12 requests in progress, B has 3, C has 7. Where does the next one go?
+    options: ["A", "B", "C"]
+    answer: 1
+    why: B is doing the least right now.
+  - q: Most requests take 5 ms, but report downloads take 2 seconds. Which method keeps the copies evenly busy?
+    options: ["Round robin", "Least connections"]
+    answer: 1
+    why: Round robin ignores how long requests take, so one copy can pile up slow reports. Least connections notices.
+  - q: Copy A keeps each user's settings in its own memory. With round robin, what goes wrong?
+    options: ["Nothing", "A user's next request may land on B or C, which don't have their settings", "The balancer crashes"]
+    answer: 1
+    why: Copies must be stateless - keep the settings in a shared store so any copy can answer.
+hints:
+  nudge: Round robin takes turns. Least connections looks at how busy each copy is right now.
+  question: Which method looks at the copies' current state, and which one doesn't?
+  pseudocode: |
+    round robin: next in the list, wrapping around
+    least connections: the one with the fewest in progress
+    any copy must be able to answer any request
+  flaw: If request 5 went to A, count again from the first request.
+  analogous: |
+    Dealing cards goes round the table in turn (round robin). A host seating guests
+    picks the waiter with the fewest tables right now (least connections).

@@ -1,0 +1,27 @@
+id: p3-l03
+phase: 3
+order: 3
+number: 3
+title: "Load Balancers"
+location: The tower's switching floor
+concepts: [load balancing, round robin, least connections, health checks, layer 4 and layer 7]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: tony
+    line: Five copies of the control service now, behind a load balancer. Problem solved.
+  - who: jarvis
+    line: One copy just died, sir. And a quarter of the tower's lights are still flickering.
+  - who: tony
+    line: A quarter? One dead copy out of five shouldn't hurt anyone.
+  - who: rhodey
+    line: Unless the balancer keeps sending people to the dead one.
+  - who: jarvis
+    line: Let's see how a load balancer decides where each request goes - and how it notices the dead.
+clue: The Extremis config had **switched off the load balancer's health checks** "for performance".
+outro:
+  - who: rhodey
+    line: Who switches off a balancer's health checks? Who even has access to that?
+  - who: jarvis
+    line: The change was signed by an automated account, Colonel. It's called "EXT-U".
+  - who: tony
+    line: Never heard of it. Find out who made it.

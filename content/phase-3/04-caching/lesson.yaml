@@ -1,0 +1,28 @@
+id: p3-l04a
+phase: 3
+order: 4
+number: 4
+part: { n: 1, of: 2 }
+title: "Caching"
+location: The sensor hall
+concepts: [cache-aside, hit rate, TTL, working set, where caches live]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: jarvis
+    line: Every floor panel asks the grid database for its sensor readings. Forty thousand times a second.
+  - who: tony
+    line: The readings change once a second. Why ask forty thousand times?
+  - who: jarvis
+    line: Because nobody told the panels they could remember the answer, sir.
+  - who: happy
+    line: So the database answers the same question all day? I'd quit.
+  - who: jarvis
+    line: It's close to quitting, Happy. Let's give it some help - a cache.
+clue: "**99% of reads asked for the same 200 sensors** - a small cache answers nearly all of them."
+outro:
+  - who: shuri
+    line: (on a call from Wakanda) You were asking the database the same question forty thousand times a second? Embarrassing.
+  - who: tony
+    line: I've been called worse. Mostly by you.
+  - who: jarvis
+    line: The database is resting now, sir. Ninety-nine reads in a hundred never reach it.

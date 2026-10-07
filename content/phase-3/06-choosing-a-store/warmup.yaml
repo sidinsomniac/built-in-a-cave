@@ -1,0 +1,45 @@
+tier: warmup
+type: quiz
+title: A Home for Every Kind of Data
+covers: [relational databases, key-value stores, document stores, search indexes, object storage, time-series databases]
+task: |
+  Untangle A.I.M.'s one-database mess. Pick the best home for each kind of data.
+questions:
+  - q: Ticket orders, payments and refunds that must always add up exactly.
+    options: ["SQL database", "Key-value store", "Document store", "Search index", "Object storage", "Time-series database"]
+    answer: 0
+    why: Money needs transactions and exact consistency - SQL's strength.
+  - q: Short code → long URL, looked up 100,000 times a second.
+    options: ["SQL database", "Key-value store", "Document store", "Search index", "Object storage", "Time-series database"]
+    answer: 1
+    why: One key, one value, enormous scale - a key-value store.
+  - q: Visitor profiles, where every visitor fills in a different set of optional fields.
+    options: ["SQL database", "Key-value store", "Document store", "Search index", "Object storage", "Time-series database"]
+    answer: 2
+    why: Flexible records with different shapes fit documents naturally.
+  - q: "\"Find exhibits matching 'arc reac'\" - with typos allowed, best matches first."
+    options: ["SQL database", "Key-value store", "Document store", "Search index", "Object storage", "Time-series database"]
+    answer: 3
+    why: Matching words, tolerating typos and ranking results is what search indexes are built for.
+  - q: Keynote videos and exhibit photos.
+    options: ["SQL database", "Key-value store", "Document store", "Search index", "Object storage", "Time-series database"]
+    answer: 4
+    why: Big files belong in cheap, durable object storage - usually served through a CDN.
+  - q: Readings from 10,000 sensors every second, charted by time range.
+    options: ["SQL database", "Key-value store", "Document store", "Search index", "Object storage", "Time-series database"]
+    answer: 5
+    why: Measurements over time, queried by time range, compressed by time - a time-series database.
+hints:
+  nudge: For each one, ask how it will be read - by key, by query, by text, by time, or as a whole file.
+  question: What's the one question people ask of this data most often?
+  pseudocode: |
+    must add up exactly -> SQL
+    one key, huge scale -> key-value
+    flexible shapes -> document
+    text with typos -> search index
+    big files -> object storage
+    measurements over time -> time-series
+  flaw: If you put money in a key-value store, ask what happens when a payment and its ticket must change together.
+  analogous: |
+    A kitchen has a fridge, a freezer, a spice rack and a bread bin. You could keep
+    everything in the freezer - but you wouldn't want to.

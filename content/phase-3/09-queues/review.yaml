@@ -1,0 +1,14 @@
+- id: why-async
+  type: choice
+  q: Why send an alert email through a queue instead of inside the request?
+  options: ["Emails are smaller that way", "The user doesn't wait for it, and a slow email provider can't freeze the request", "Queues encrypt emails"]
+  answer: 1
+  why: The request answers at once; the slow work happens in the background.
+  covers: [asynchronous work]
+- id: log-or-queue
+  type: choice
+  q: Three teams each need every click event, and one wants to replay last week's. Queue or log?
+  options: ["A queue", "A log"]
+  answer: 1
+  why: A log keeps events for every reader and allows replay; a queue hands each message to one worker and deletes it.
+  covers: [logs and queues]

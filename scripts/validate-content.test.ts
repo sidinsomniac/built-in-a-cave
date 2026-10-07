@@ -138,6 +138,7 @@ function proveDesign(spec: { scenarios: Scenario[]; targets: Parameters<typeof a
       if ("clear" in check) expect(RULES[check.clear], `${step.id}: unknown rule ${check.clear}`).toBeTruthy();
       if ("rubric" in check) expect(CHECKERS[check.rubric], `${step.id}: unknown checker ${check.rubric}`).toBeTruthy();
       if ("survives" in check) expect(spec.scenarios.map((x) => x.id), `${step.id}: unknown scenario ${check.survives}`).toContain(check.survives);
+      if ("healthy" in check) expect(spec.scenarios.map((x) => x.id), `${step.id}: unknown scenario ${check.healthy}`).toContain(check.healthy);
       if ("has" in check) expect(COMPONENTS[check.has], `${step.id}: unknown kind ${check.has}`).toBeTruthy();
     }
     if (step.ask && "options" in step.ask) expect(step.ask.answer >= 0 && step.ask.answer < step.ask.options.length, `${step.id}: answer out of range`).toBe(true);

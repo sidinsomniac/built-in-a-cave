@@ -63,7 +63,7 @@ export function Home() {
           </div>
         </section>
       ))}
-      <p className="muted small">Phases 3, 4 and 6, and the rest of each Phase, are on the way - see the curriculum in docs/curriculum.md.</p>
+      <p className="muted small">Phases 4 and 6, and the rest of each Phase, are on the way - see the curriculum in docs/curriculum.md.</p>
     </div>
   );
 }

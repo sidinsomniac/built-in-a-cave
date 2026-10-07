@@ -1,0 +1,38 @@
+tier: outstanding
+type: tradeoff
+title: Queue or Log?
+covers: [logs and queues, queues and workers]
+task: |
+  Every click on the Expo app becomes an event. **Three teams** need every event - analytics,
+  billing and fraud detection - each reading at its own pace. And when analytics fixes a bug, it
+  wants to **replay last week's events** from the start.
+
+  Should the events go through a log (like Kafka) or a simple queue (like SQS)? Make the call,
+  then tick every reason that supports it.
+options:
+  - A log, like Kafka
+  - A simple queue, like SQS
+answer: 0
+reasons:
+  - { text: "Each team reads the same events independently, keeping track of its own position", right: true }
+  - { text: "Events are kept for days, so a team can rewind and replay them", right: true }
+  - { text: "Events stay in order within each partition, so a replay sees what happened in order", right: true }
+  - { text: "A log needs no servers or operations work at all", right: false }
+  - { text: "A simple queue can't hold more than a few hundred messages", right: false }
+  - { text: "A log deletes each event as soon as one reader takes it", right: false }
+why: |
+  A queue hands each message to one worker and deletes it - three teams would need three copies,
+  and nobody could replay. A log keeps every event for a retention period, and each reader
+  (a "consumer group") tracks its own position, so teams read independently and can rewind.
+  The price: a log like Kafka is more work to run than a managed queue.
+hints:
+  nudge: Two requirements decide it - several independent readers, and replay.
+  question: After one team reads an event from a simple queue, is it still there for the next team?
+  pseudocode: |
+    queue: one reader per message, then gone
+    log: kept for days, every reader has its own position
+    check each reason is true, and relevant here
+  flaw: If you ticked "a log deletes each event when one reader takes it", that's describing a queue.
+  analogous: |
+    A queue is a ticket dispenser at a counter - each ticket is served once. A log is a
+    newspaper archive - every reader can read every issue, and go back to last week's.

@@ -1,0 +1,21 @@
+- id: aside
+  type: choice
+  q: In cache-aside, what happens on a miss?
+  options: ["The request fails", "The service reads the database, answers, and puts the value in the cache", "The cache asks the user"]
+  answer: 1
+  why: A miss falls through to the database, then fills the cache for next time.
+  covers: [cache-aside, hit rate]
+- id: working-set
+  type: choice
+  q: 10 TB is stored, but people mostly read about 50 GB of it. Roughly how big must the cache be for a high hit rate?
+  options: ["About 50 GB - the working set", "10 TB - everything", "1 GB"]
+  answer: 0
+  why: The cache needs the data people actually read, not everything stored.
+  covers: [working set]
+- id: layers
+  type: choice
+  q: Which cache saves a trip across the ocean for a video viewer in Sydney?
+  options: ["The database's own memory", "A CDN near Sydney", "An app cache next to the services in London"]
+  answer: 1
+  why: Only a cache close to the user saves the long trip. App caches save the trip to the database.
+  covers: [where caches live]

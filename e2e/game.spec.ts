@@ -156,6 +156,18 @@ test("new formats: a quiz, a guided design table inside a lesson, and a trade-of
   await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
 });
 
+test("once the Phase 3 basics are passed, the URL shortener's briefing becomes a skippable recap", async ({ page }) => {
+  const required = ["p3-l01", "p3-l03", "p3-l04a", "p3-l06a", "p3-l09"];
+  const exercises = Object.fromEntries(required.flatMap((l) => ["warmup", "core"].map((slot) => [`${l}.${slot}`, { zone: "optimal", best: "optimal", attempts: 1, hintsUsed: 0 }])));
+  const save = { state: { name: "", xp: 400, exercises, cases: {}, scenesSeen: { "phase:1": true, "case:b01": true }, drafts: {}, benches: {} }, version: 1 };
+  await page.addInitScript((s) => localStorage.setItem("built-in-a-cave-save", s), JSON.stringify(save));
+  await page.goto("/#/case/b01");
+  await page.getByTestId("skip-briefing").click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "solid");
+  await page.getByTestId("next-station").click();
+  await expect(page.getByTestId("station-interrogate")).toHaveAttribute("aria-selected", "true");
+});
+
 async function inspector(page: Page) {
   return page.getByTestId("inspector");
 }

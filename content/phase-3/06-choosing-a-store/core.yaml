@@ -1,0 +1,41 @@
+tier: core
+type: quiz
+title: Model the Expo in SQL
+twist: spec reading - each requirement hides a modelling decision
+covers: [relational databases, keys and relationships]
+task: |
+  The Expo's ticketing moves into a SQL database with tables for **visitors**, **tickets**,
+  **exhibits** and **tours**. Read each requirement and pick the right modelling choice.
+questions:
+  - q: Each ticket belongs to exactly one visitor; a visitor can hold many tickets. Where does the link live?
+    options: ["A visitor_id column on the tickets table", "A list of ticket ids on the visitors table", "A separate table for every visitor"]
+    answer: 0
+    why: The "many" side points to the "one" side - each ticket row holds its visitor's id (a foreign key).
+  - q: A tour visits many exhibits, and an exhibit appears on many tours.
+    options: ["A tour_id column on the exhibits table", "A joining table with one row per (tour, exhibit) pair", "Copy the exhibit details into every tour"]
+    answer: 1
+    why: Many-to-many needs a table of pairs. A single tour_id column could only hold one tour per exhibit.
+  - q: Visitors log in by email, thousands of times a minute.
+    options: ["Make email the only column", "Add an index on the email column", "Read every visitor and check each email"]
+    answer: 1
+    why: An index lets the database find one email directly, instead of scanning every row (more in part 2).
+  - q: Buying a ticket means charging the card AND creating the ticket. If one fails, neither should happen.
+    options: ["Two separate requests", "One transaction", "Cache the ticket first"]
+    answer: 1
+    why: A transaction makes both changes all-or-nothing, so money and tickets never get out of step.
+  - q: A visitor deletes their account while their tickets still point to them.
+    options: ["The tickets silently point to nobody", "The foreign key stops the delete until the tickets are dealt with", "Nothing needs to happen"]
+    answer: 1
+    why: Foreign keys keep relationships valid - you decide whether tickets are deleted, kept anonymously, or the delete is refused.
+hints:
+  nudge: Find the relationship in each requirement - one-to-many, many-to-many, or "these must change together".
+  question: Which side of each relationship is the "many" side?
+  pseudocode: |
+    one-to-many: the many side holds the one side's id
+    many-to-many: a joining table of pairs
+    frequent lookups by a column: an index
+    changes that must happen together: a transaction
+  flaw: If you stored a list of ids in one column, ask how you'd find "every visitor holding ticket 501".
+  analogous: |
+    A school: each pupil has one form tutor (pupils record their tutor), but pupils take many
+    classes and classes have many pupils (a register lists each pupil-class pair).

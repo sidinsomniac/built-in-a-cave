@@ -152,6 +152,19 @@ export const RULES: Record<string, Rule> = {
       nodeIds: bad.map((b) => b.id),
     };
   },
+  no_health_checks: (g) => {
+    const bad = g.reachable().filter((x) => x.kind === "lb" && x.s.health_checks === false);
+    if (!bad.length) return null;
+    return {
+      id: "no_health_checks",
+      severity: "major",
+      stone: "space",
+      title: "A load balancer that can't tell dead copies from live ones",
+      question: "When one copy behind the balancer dies, how does the balancer find out - and what happens to the requests it keeps sending there?",
+      why: "Health checks let the load balancer stop sending traffic to copies that don't answer, so one dead copy doesn't fail a share of every request.",
+      nodeIds: bad.map((b) => b.id),
+    };
+  },
   orphan_queue: (g) => {
     const bad = g.reachable().filter((x) => x.kind === "queue" && !g.next(x.id).some((d) => d.kind === "worker"));
     if (!bad.length) return null;

@@ -1,0 +1,28 @@
+tier: outstanding
+type: estimate
+title: Size the Tower for Its Worst Night
+covers: [peak traffic, capacity, headroom]
+task: |
+  Size the grid control service for its busiest evening - including the night one copy dies
+  at the peak.
+given:
+  - An average evening brings 6,000 requests a second
+  - The peak is 3 times the average
+  - One copy handles 1,000 requests a second, and you want at most 75% busy at the peak
+  - Add one spare copy, so losing a copy at the peak still leaves enough
+  - Each copy costs 150 credits a month
+ask:
+  - { id: copies, label: "Copies to run, including the spare", unit: "copies", answer: 25 }
+  - { id: cost, label: "Monthly cost of those copies", unit: "credits", answer: 3750 }
+hints:
+  nudge: Peak first, then what one copy can safely do, then the spare, then the cost.
+  question: What's 75% of 1,000 - and how many of those fit into the peak?
+  pseudocode: |
+    peak = average x 3
+    safe per copy = 1,000 x 0.75
+    copies = peak / safe per copy, rounded up, plus 1
+    cost = copies x 150
+  flaw: If you got 18 copies, you sized the copies to run at 100% at the peak - no headroom, no spare.
+  analogous: |
+    A bakery sells 600 loaves on a normal Saturday and triple that before a holiday. Each oven
+    bakes 100 an hour, and you never run ovens flat out: 1,800 / 75 = 24 ovens, plus a spare.

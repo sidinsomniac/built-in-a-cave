@@ -30,6 +30,7 @@ lb:
   fails: Rarely the bottleneck. If it has only one copy, it is itself a single point of failure.
   settings:
     replicas: Copies of the load balancer. Two is the normal, safe default.
+    health_checks: Pings every copy behind it every few seconds. A copy that stops answering gets no more requests until it recovers. Turn it off, and a dead copy keeps receiving - and failing - its share.
 
 service:
   what: Your application code, running on servers. It receives requests, does the logic, and talks to caches, stores and queues. It keeps nothing important in its own memory ("stateless"), so you can run many identical copies.

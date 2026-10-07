@@ -1,0 +1,14 @@
+- id: health
+  type: choice
+  q: What do health checks let a load balancer do?
+  options: ["Encrypt traffic", "Stop sending requests to copies that have died", "Make copies faster"]
+  answer: 1
+  why: A copy that stops answering health checks is taken out of rotation.
+  covers: [health checks, load balancing]
+- id: which-layer
+  type: choice
+  q: You need /api and /live on one domain to reach different services. Which load balancer?
+  options: ["Layer 4 - it's faster", "Layer 7 - it can read the path"]
+  answer: 1
+  why: Only a layer 7 balancer reads the request, so only it can route by path.
+  covers: [layer 4 and layer 7]

@@ -18,7 +18,9 @@ export type StepCheck =
    * In this scenario, every node of these kinds (all nodes if omitted) stays
    * at or under `max` utilisation (default 1 = full).
    */
-  | { survives: string; kinds?: NodeKind[]; max?: number };
+  | { survives: string; kinds?: NodeKind[]; max?: number }
+  /** In this scenario, fewer than `max` of all requests fail (default 0.1%) and queues end under `backlog`. */
+  | { healthy: string; max?: number; backlog?: number };
 
 /** An optional question inside a step: a choice, or a number worked out on the calculator. */
 export type StepAsk =
@@ -69,6 +71,12 @@ export function checkStep(step: DesignStep, design: Design, ctx: StepContext): b
     }
     if ("clear" in check) return runRules(design, dctx, [check.clear]).length === 0;
     if ("rubric" in check) return runRubric(design, [check.rubric])[0]?.status === "covered";
+    if ("healthy" in check) {
+      const sc = ctx.scenarios.find((s) => s.id === check.healthy);
+      if (!sc) return false;
+      const r = simulate(design, sc);
+      return r.errorRate <= (check.max ?? 0.001) && r.backlog <= (check.backlog ?? Infinity);
+    }
     const scenario = ctx.scenarios.find((s) => s.id === check.survives);
     if (!scenario) return false;
     const result = simulate(design, scenario);

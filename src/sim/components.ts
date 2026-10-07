@@ -59,7 +59,10 @@ export const COMPONENTS: Record<NodeKind, ComponentSpec> = {
     icon: "⚖️",
     blurb: "Spreads requests across the services behind it, and stops sending to dead ones.",
     latency: 0.5,
-    settings: [replicas(2, 4, "Managed load balancers run as a redundant pair by default.")],
+    settings: [
+      replicas(2, 4, "Managed load balancers run as a redundant pair by default."),
+      { key: "health_checks", label: "Health checks", kind: "boolean", default: true, help: "Pings each copy every few seconds, and stops sending requests to copies that don't answer." },
+    ],
   },
   service: {
     kind: "service",

@@ -34,11 +34,17 @@ debounce:
   match: [debouncing, debounced]
 DNS:
   def: Domain Name System - the internet's phone book, turning names like expo.stark.com into IP addresses.
+document store:
+  def: A database that stores each record as a flexible document (like a JSON object), so records can have different fields.
+  match: [document stores, document database]
 endpoint:
   def: One specific request an API accepts - a method plus a path, like POST /links.
   match: [endpoints]
 fake timers:
   def: A test tool that replaces the real clock, so a test can jump forward 100 ms instantly instead of waiting.
+foreign key:
+  def: A column that points to another table's row - like a ticket's visitor_id pointing to the visitor. The database keeps those links valid.
+  match: [foreign keys]
 hit rate:
   def: The share of reads a cache answers itself. The rest are misses that go on to the database.
 hot key:
@@ -47,12 +53,23 @@ HTTP:
   def: The language browsers and servers speak - requests with a method (GET, POST...) and responses with a status code.
 idempotent:
   def: Safe to repeat - doing it twice has the same effect as doing it once.
+index:
+  def: A sorted lookup structure a database keeps for a column, so finding rows by it is fast instead of scanning everything.
+  match: [indexes, indexed]
 IP address:
   def: The number that identifies a machine on the internet, like 203.0.113.7.
   match: [IP addresses, IP]
+Kafka:
+  def: A popular "log" message system - it keeps every event for days, in order, so many readers can each read (and re-read) at their own pace.
 key-value store:
   def: A database built for one job - "give me the value for this key" - done fast at huge scale.
   match: [key-value stores]
+layer 4 load balancer:
+  def: A load balancer that only sees connections (addresses and ports), not what's inside them. Fast and simple, but can't route by path.
+  match: [layer 4, layer-4]
+layer 7 load balancer:
+  def: A load balancer that reads each HTTP request, so it can route by path or header, end TLS, and understand WebSocket upgrades.
+  match: [layer 7, layer-7]
 latency:
   def: How long one request takes, from asking to getting the answer.
 load balancer:
@@ -63,9 +80,19 @@ p99:
 partition:
   def: One slice of a big database. Keys are split across partitions so no single machine holds or serves everything.
   match: [partitions, partitioned]
+primary key:
+  def: The column that uniquely identifies each row in a table, like a ticket's id.
+  match: [primary keys]
 queue:
   def: A waiting line for work. Producers drop messages on it; workers pick them up later.
   match: [queues]
+round robin:
+  def: Handing requests to each copy in turn - A, B, C, A, B, C...
+least connections:
+  def: Sending each new request to the copy with the fewest requests in progress.
+health check:
+  def: A tiny request a load balancer sends to each copy every few seconds, to find out whether it's still alive.
+  match: [health checks]
 RADIO:
   def: "A five-part shape for a design answer: Requirements, Architecture, Data model, Interface, Optimisations."
 rate limit:
@@ -80,13 +107,22 @@ resolver:
 root server:
   def: The top of the DNS tree. It only knows who handles each ending, like .com or .org.
   match: [root servers]
+search index:
+  def: A store built for finding text - matching words, tolerating typos and ranking results (like Elasticsearch).
+  match: [search indexes, search engine]
 service:
   def: Your application code running on servers, answering requests.
 single point of failure:
   def: Any part with only one copy - when it dies, everything that depends on it stops.
+SQS:
+  def: Amazon's Simple Queue Service - a managed queue where each message is handed to one worker, then deleted.
 SQL database:
   def: A relational database - tables of rows and columns you can query in rich ways (like Postgres or MySQL).
   match: [SQL, SQL databases, relational database]
+backlog:
+  def: The messages waiting in a queue that no worker has picked up yet.
+backpressure:
+  def: Slowing down or refusing new work when the system downstream can't keep up, instead of letting a backlog grow forever.
 stampede:
   def: A flood of requests hitting the database at once, usually right after a cache empties.
 stateless:
@@ -96,6 +132,9 @@ throttle:
   match: [throttling, throttled]
 throughput:
   def: How much work a system gets through per second.
+time-series database:
+  def: A database built for measurements over time - sensor readings, metrics - stored and queried by time range.
+  match: [time-series databases, time series]
 TLD:
   def: Top-level domain - the last part of a name, like .com or .org.
 TTL:
@@ -149,9 +188,15 @@ server:
   match: [servers]
 SYN:
   def: '"Synchronise" - the first message of a connection handshake: "I would like to talk."'
+table:
+  def: In a SQL database, a grid of rows (records) and columns (fields) - one table for visitors, one for tickets.
+  match: [tables]
 TCP:
   def: Transmission Control Protocol - delivers data reliably and in order, resending anything lost. Most web traffic uses it.
 TLS:
   def: Transport Layer Security - the layer that encrypts a connection and checks the server's certificate.
+transaction:
+  def: A group of database changes that all happen, or none do - so a payment and its ticket can never get out of step.
+  match: [transactions]
 UDP:
   def: User Datagram Protocol - sends packets with no guarantees, no handshake and no resending. Fast, for when late data is useless anyway.

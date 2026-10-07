@@ -36,6 +36,15 @@ describe("the simulation", () => {
     expect(enough.errorRate).toBe(0);
   });
 
+  it("without health checks, a dead copy keeps failing its share of requests", () => {
+    const kill: Scenario = { ...reads(2000), failures: [{ at: 5, target: "svc", kind: "kill" }] };
+    const checked = simulate(basic(5), kill);
+    const unchecked = simulate({ ...basic(5), nodes: basic(5).nodes.map((n) => (n.id === "lb" ? { ...n, settings: { health_checks: false } } : n)) }, kill);
+    expect(checked.errorRate).toBe(0);
+    expect(unchecked.errorRate).toBeGreaterThan(0.1);
+    expect(unchecked.notes.join(" ")).toMatch(/no health checks/);
+  });
+
   it("gets slower as utilisation climbs", () => {
     const light = simulate(basic(10), reads(1000)).classes.read.p99;
     const heavy = simulate(basic(10), reads(9000)).classes.read.p99;

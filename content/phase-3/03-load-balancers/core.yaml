@@ -1,0 +1,87 @@
+tier: core
+type: design
+title: The Copy That Wouldn't Die Quietly
+twist: failure - a copy dies, and the balancer doesn't notice
+covers: [health checks, load balancing]
+task: |
+  Here's the tower's control service as Extremis left it. In the evening, one copy dies.
+  Find out why the lights still flicker, then make the system shrug off a dead copy.
+palette: [lb, service, kvstore]
+prebuilt:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 160 }
+    - { id: lb, kind: lb, label: Front door, settings: { health_checks: false }, x: 240, y: 160 }
+    - { id: control, kind: service, label: Grid control, settings: { replicas: 4 }, x: 460, y: 160 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 680, y: 160 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: control }
+    - { from: control, to: readings }
+scenarios:
+  - id: evening
+    label: The evening - a copy dies after 10 seconds
+    duration: 40
+    workingSetGb: 1
+    failures: [{ at: 10, target: control, kind: kill }]
+    classes:
+      - { id: read, label: Read the grid, op: read, rps: 3000 }
+targets:
+  p99_ms: 80
+  error_rate: 0.001
+rubric: { must: [], should: [] }
+rules: [no_datastore, no_health_checks]
+steps:
+  - id: watch
+    title: Watch the copy die
+    goal: Run the simulation and see what happens after one copy dies.
+    teach: |
+      Four copies share 3,000 requests a second. Ten seconds in, one copy dies. Run it, then hover
+      the replay chart around the 10-second mark - the red line is the share of requests failing.
+    ask:
+      q: One of the 4 copies is dead, and the balancer still sends it its share. What percentage of requests fail?
+      number: 25
+      unit: "%"
+      why: One copy in four still gets a quarter of the requests, and every one of them fails.
+    done: [{ ran: true }]
+    hint: Press Run the simulation and look at the errors line after 10 seconds.
+  - id: checks
+    title: Notice the dead
+    goal: Turn on the load balancer's health checks.
+    teach: |
+      With **health checks**, the balancer pings each copy every few seconds and stops sending requests
+      to any copy that doesn't answer. Select the **Front door** and look at its settings.
+    done: [{ clear: no_health_checks }]
+    hint: Select the load balancer; there's a Health checks setting.
+  - id: spare
+    title: Survive the loss
+    goal: Keep every copy under 80% busy even after one has died.
+    teach: |
+      Health checks stop the failures, but now 3 copies carry all 3,000 requests - **100% busy**, and
+      slow. Size so that the copies left **after** one dies still have headroom.
+    ask:
+      q: After one copy dies, the rest must carry 3,000 requests a second at no more than 800 each. How many copies must you start with?
+      number: 5
+      unit: copies
+      why: 3,000 ÷ 800 = 3.75, so 4 must survive - start with 5, so losing one still leaves 4.
+    done: [{ healthy: evening }, { survives: evening, kinds: [service], max: 0.8 }]
+    hint: Select Grid control and raise its Replicas; run again and watch its load bar after the failure.
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 160 }
+    - { id: lb, kind: lb, label: Front door, settings: { health_checks: true }, x: 240, y: 160 }
+    - { id: control, kind: service, label: Grid control, settings: { replicas: 5 }, x: 460, y: 160 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 680, y: 160 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: control }
+    - { from: control, to: readings }
+hints:
+  nudge: Two separate problems - the balancer can't see the dead copy, and the survivors are too few.
+  question: After the failure, how many copies are actually doing the work - and how busy is each one?
+  pseudocode: |
+    turn on the balancer's health checks
+    copies = (peak / safe load per copy) rounded up, plus 1 for the one that dies
+  flaw: If errors stop but the run is still slow, the three surviving copies are at 100%.
+  analogous: |
+    A call centre whose switchboard keeps routing calls to an agent who went home: a quarter of
+    callers hear silence. Fix the switchboard - then make sure the others can cover the extra calls.

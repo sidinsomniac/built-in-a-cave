@@ -157,9 +157,20 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
       }
       if (kind === "lb") {
         load(id).reads += rps;
-        const downstream = next(id).filter((d) => !isDown(states.get(d)!, t));
         const all = next(id);
         if (all.length === 0) return [{ prob, hops: here, dead: true }];
+        if (st.s.health_checks === false) {
+          // Without health checks the balancer keeps sending dead copies their share - and those requests fail.
+          return all.flatMap((d) => {
+            const target = states.get(d)!;
+            const total = Math.max(1, replicasOf(target) + target.lost);
+            const deadShare = isDown(target, t) ? 1 : target.lost / total;
+            if (deadShare > 0) notes.add(`${st.node.label ?? "The load balancer"} has no health checks, so it kept sending requests to dead copies of ${target.node.label ?? d}.`);
+            const live = deadShare < 1 ? route(d, c, (rps * (1 - deadShare)) / all.length, (prob * (1 - deadShare)) / all.length, here) : [];
+            return deadShare > 0 ? [...live, { prob: (prob * deadShare) / all.length, hops: here, dead: true }] : live;
+          });
+        }
+        const downstream = all.filter((d) => !isDown(states.get(d)!, t));
         const targets = downstream.length ? downstream : all; // all dead: errors flow to a dead node
         return targets.flatMap((d) => route(d, c, rps / targets.length, prob / targets.length, here));
       }
@@ -302,7 +313,7 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
           u = simple(l.reads, CAPACITY.cache, r, "reads/s");
           const memory = num(st.s, "memory_gb", 4) * r;
           const hit = cacheHit(st);
-          note = `Hit rate about ${Math.round(hit * 100)}%: ${fmt(memory)} GB of memory across its copies holds ${Math.round(Math.min(1, memory / workingSet) * 100)}% of the ${fmt(workingSet)} GB of data people read${hot ? ", and the viral key is always in it" : ""}. Every miss goes on to the store.`;
+          note = `Hit rate about ${Math.round(hit * 100)}%: ${fmt(memory)} GB of memory across its copies holds ${Math.round(Math.min(1, memory / workingSet) * 100)}% of the ${fmt(workingSet)} GB of data people read${hot ? ", and the viral key is always in it" : ""}.${num(st.s, "ttl_s", 0) > 0 && num(st.s, "ttl_s", 0) < 60 ? " Its TTL is under a minute, so popular entries keep expiring and the hit rate drops." : ""} Every miss goes on to the store.`;
           break;
         }
         case "queue": u = simple(l.writes, CAPACITY.queue, 1, "events/s", "queue", "queues"); break;

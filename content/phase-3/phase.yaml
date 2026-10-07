@@ -1,0 +1,16 @@
+phase: 3
+title: The Arc Reactor
+arc: Extremis
+summary: The backend building blocks - what each one does, when to reach for it, and how it fails.
+theme: { accent: "#4fd8ff", accent2: "#ffc861", glow: "#0b2030" }
+intro:
+  - who: narrator
+    line: Dusk over Manhattan. Floor by floor, Stark Tower's lights flicker - and go out. The arc reactor is fine. The software running it isn't.
+  - who: killian
+    line: Aldrich Killian, A.I.M. Our Extremis platform fixes this overnight. It simply runs everything... hotter.
+  - who: pepper
+    line: We'll pass, Mr Killian. For now.
+  - who: tony
+    line: Before anyone sells me anything, I want to know what actually broke. Part by part.
+  - who: jarvis
+    line: Then we'll take the grid apart, one building block at a time. I'll ask; you'll build.

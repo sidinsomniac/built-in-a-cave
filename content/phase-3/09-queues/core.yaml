@@ -1,0 +1,96 @@
+tier: core
+type: design
+title: The Alert Storm
+twist: failure - a burst of alerts outruns the workers
+covers: [backlog, sizing workers, queues and workers]
+task: |
+  The queue works on a normal evening. Then the cooling system trips and alerts arrive at **six
+  times** the normal rate for 15 seconds. Make sure the backlog is gone before the run ends.
+palette: [service, queue, worker, kvstore]
+prebuilt:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 180 }
+    - { id: lb, kind: lb, label: Front door, settings: {}, x: 220, y: 180 }
+    - { id: grid, kind: service, label: Grid service, settings: { replicas: 10 }, x: 420, y: 180 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 640, y: 80 }
+    - { id: alerts, kind: queue, label: Alert queue, settings: {}, x: 640, y: 260 }
+    - { id: senders, kind: worker, label: Alert workers, settings: { replicas: 1 }, x: 840, y: 260 }
+    - { id: log, kind: kvstore, label: Alert store, settings: { partitions: 3, replicas: 2 }, x: 1040, y: 260 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: grid }
+    - { from: grid, to: readings }
+    - { from: grid, to: alerts }
+    - { from: alerts, to: senders }
+    - { from: senders, to: log }
+scenarios:
+  - id: storm
+    label: The cooling system trips - an alert storm
+    duration: 60
+    workingSetGb: 1
+    shape: [{ at: 0, x: 1 }, { at: 10, x: 6 }, { at: 25, x: 1 }]
+    classes:
+      - { id: update, label: Panel update, op: read, rps: 1000, emits: [{ event: alert, ratio: 1 }] }
+targets:
+  p99_ms: 60
+  error_rate: 0.001
+  backlog: 1000
+rubric: { must: [async_events], should: [] }
+rules: [orphan_queue, sync_side_effects]
+steps:
+  - id: watch
+    title: Watch the storm
+    goal: Run the simulation and find the queue's backlog in Rhodey's audit.
+    teach: |
+      For 15 seconds, alerts arrive at **6,000 a second**. One worker handles about **2,000**.
+      The rest wait on the queue - the **backlog**.
+    ask:
+      q: 6,000 alerts arrive each second and one worker handles 2,000. By how much does the backlog grow each second?
+      number: 4000
+      unit: messages/s
+      why: 6,000 arriving − 2,000 handled = 4,000 more waiting, every second of the storm.
+    done: [{ ran: true }]
+    hint: Run it; the backlog is listed in the audit under "Queue backlog".
+  - id: drain
+    title: Drain it in time
+    goal: Size the workers so the backlog is gone (under 1,000) by the end of the run.
+    teach: |
+      A queue is a **shock absorber**. You can size workers for the **peak** (6,000 a second - no backlog
+      at all), or for less, as long as they **drain** the backlog after the storm ends.
+
+      After the storm, alerts drop back to 1,000 a second. Every spare bit of worker capacity eats into
+      the backlog.
+    ask:
+      q: To keep up during the storm itself, with no backlog at all, how many workers?
+      number: 3
+      unit: workers
+      why: 6,000 ÷ 2,000 = 3. Fewer workers also work here - the backlog drains after the storm - but alerts arrive later.
+    done: [{ healthy: storm, backlog: 1000 }]
+    hint: Select the Alert workers and raise Replicas. Then check the alert store's load bar.
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 180 }
+    - { id: lb, kind: lb, label: Front door, settings: {}, x: 220, y: 180 }
+    - { id: grid, kind: service, label: Grid service, settings: { replicas: 10 }, x: 420, y: 180 }
+    - { id: readings, kind: kvstore, label: Grid readings, settings: { replicas: 2 }, x: 640, y: 80 }
+    - { id: alerts, kind: queue, label: Alert queue, settings: {}, x: 640, y: 260 }
+    - { id: senders, kind: worker, label: Alert workers, settings: { replicas: 3 }, x: 840, y: 260 }
+    - { id: log, kind: kvstore, label: Alert store, settings: { partitions: 3, replicas: 2 }, x: 1040, y: 260 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: grid }
+    - { from: grid, to: readings }
+    - { from: grid, to: alerts }
+    - { from: alerts, to: senders }
+    - { from: senders, to: log }
+hints:
+  nudge: During the storm, compare what arrives with what the workers can handle. After it, compare again.
+  question: How big is the backlog when the storm ends - and how fast do the workers shrink it afterwards?
+  pseudocode: |
+    during the storm: backlog grows by (arriving - workers x 2,000) each second
+    after it: backlog shrinks by (workers x 2,000 - arriving) each second
+    enough workers: the backlog is gone before the run ends
+  flaw: If the backlog never shrinks, after the storm the workers handle no more than arrives.
+  analogous: |
+    A sink with the tap at full blast fills up even with the plug out. Turn the tap down
+    and it drains - faster if the plughole is bigger.

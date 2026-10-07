@@ -1,0 +1,35 @@
+tier: outstanding
+type: tradeoff
+title: One Front Door for Two Kinds of Traffic
+covers: [layer 4 and layer 7, load balancing]
+task: |
+  The new grid dashboard lives on one domain. Requests to `/api/...` must reach the API service.
+  Requests to `/live` open a long-lived **WebSocket** connection that must reach the live-feed
+  gateway, and stay connected to the same gateway for hours.
+
+  Which load balancer should sit at the front door? Make the call, then tick every reason that supports it.
+options:
+  - A layer 7 load balancer
+  - A layer 4 load balancer
+answer: 0
+reasons:
+  - { text: "It reads each request's path, so /api and /live can go to different services", right: true }
+  - { text: "It understands the WebSocket upgrade, and keeps the upgraded connection on one gateway", right: true }
+  - { text: "It can end TLS in one place, so certificates live in one spot", right: true }
+  - { text: "A layer 4 load balancer can't carry WebSocket traffic at all", right: false }
+  - { text: "Layer 7 is always faster than layer 4", right: false }
+  - { text: "A layer 7 load balancer doesn't need health checks", right: false }
+why: |
+  Routing by path needs a balancer that reads the request - layer 7. It also handles the WebSocket
+  upgrade and ends TLS. A layer 4 balancer *can* carry WebSockets (they're just TCP), but it can't
+  tell /api from /live, and it does a little less work, so it's slightly faster, not slower.
+hints:
+  nudge: The deciding requirement is in the first two sentences.
+  question: Can a load balancer route by path if it never reads the request?
+  pseudocode: |
+    find the requirement only one option can meet
+    for each reason: is it true? does it matter here?
+  flaw: If you ticked "layer 4 can't carry WebSockets", remember a WebSocket is a TCP connection - layer 4 carries any TCP.
+  analogous: |
+    A post room that only reads the building number can't sort letters by department.
+    One that opens the envelope and reads "Accounts" can - at the cost of a little time.

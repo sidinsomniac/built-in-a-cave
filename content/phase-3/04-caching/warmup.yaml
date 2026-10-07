@@ -1,0 +1,92 @@
+tier: warmup
+type: design
+title: Give the Database a Break
+covers: [cache-aside, hit rate, TTL, working set]
+task: |
+  Every floor panel reads sensor values straight from the SQL database, and it's nearly full.
+  Put a cache in front of it, and watch the database - and the waiting times - recover.
+palette: [service, cache, sqldb]
+prebuilt:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 160 }
+    - { id: lb, kind: lb, label: Front door, settings: {}, x: 220, y: 160 }
+    - { id: sensors, kind: service, label: Sensor service, settings: { replicas: 10 }, x: 420, y: 160 }
+    - { id: db, kind: sqldb, label: Grid database, settings: { read_replicas: 0 }, x: 640, y: 160 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: sensors }
+    - { from: sensors, to: db }
+scenarios:
+  - id: readings
+    label: Every panel reading its sensors
+    duration: 30
+    workingSetGb: 8
+    classes:
+      - { id: read, label: Read a sensor, op: read, rps: 4500 }
+targets:
+  p99_ms: 40
+  error_rate: 0.001
+rubric: { must: [cache_hot_reads], should: [] }
+rules: [no_datastore, cache_without_ttl]
+steps:
+  - id: strain
+    title: See the strain
+    goal: Run the simulation and read the database's load bar.
+    teach: |
+      Every read goes all the way to the database. Run it, then select the **Grid database** to read
+      its readout: what it was asked for, and what it can do.
+    ask:
+      q: The database is asked for 4,500 reads a second and can do about 5,000. How busy is it?
+      number: 90
+      unit: "%"
+      why: 4,500 ÷ 5,000 = 90% - nearly full, so every read waits in a long queue.
+    done: [{ ran: true }]
+    hint: Run the simulation, then select the database.
+  - id: cache
+    title: Ask the cache first
+    goal: Add a cache, wire the service to it, and give its entries an expiry (TTL).
+    teach: |
+      With **cache-aside**, the service asks the cache first and only goes to the database on a
+      miss. Wire **Sensor service → Cache** (keep the wire to the database too - misses still need it).
+
+      The panels show **one-minute averages**, so a reading is fresh for 60 seconds. A TTL of about
+      a minute keeps them fresh while most reads are hits. (A TTL much shorter than that keeps
+      expiring popular entries, and the hit rate drops.)
+    done: [{ rubric: cache_hot_reads }, { clear: cache_without_ttl }]
+    hint: Add a Cache, connect the service to it, and set its TTL above 0.
+  - id: memory
+    title: Hold the working set
+    goal: Give the cache enough memory that the database drops under 20% busy.
+    teach: |
+      The hit rate depends on how much of the **working set** fits in the cache. People read about
+      **8 GB** of sensor data. Select the cache: its readout shows the hit rate and why.
+    ask:
+      q: People read about 8 GB of data. Roughly how much cache memory holds all of it?
+      number: 8
+      unit: GB
+      why: Hold the working set and nearly every read becomes a hit.
+    done: [{ survives: readings, kinds: [sqldb], max: 0.2 }]
+    hint: Select the cache and raise its Memory (GB).
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Floor panels, settings: {}, x: 40, y: 160 }
+    - { id: lb, kind: lb, label: Front door, settings: {}, x: 220, y: 160 }
+    - { id: sensors, kind: service, label: Sensor service, settings: { replicas: 10 }, x: 420, y: 160 }
+    - { id: cache, kind: cache, label: Sensor cache, settings: { memory_gb: 8, ttl_s: 60 }, x: 640, y: 60 }
+    - { id: db, kind: sqldb, label: Grid database, settings: { read_replicas: 0 }, x: 640, y: 240 }
+  edges:
+    - { from: clients, to: lb }
+    - { from: lb, to: sensors }
+    - { from: sensors, to: db }
+    - { from: sensors, to: cache }
+hints:
+  nudge: Keep the database wired - the cache sits beside it, and the service asks the cache first.
+  question: What share of reads does the cache answer, and how many reach the database after that?
+  pseudocode: |
+    service -> cache (asked first), service -> database (on a miss)
+    TTL above 0
+    memory about the size of the data people read
+  flaw: If the database is still busy, check the cache's hit rate in its readout - it may be too small for the working set.
+  analogous: |
+    A librarian keeps the twenty most-requested books on the front desk. Most people are
+    served instantly; only rare requests send them into the stacks.

@@ -1,0 +1,28 @@
+id: p3-l06a
+phase: 3
+order: 6
+number: 6
+part: { n: 1, of: 3 }
+title: "Databases: Choosing a Store"
+location: The tower's data vault
+concepts: [relational databases, keys and relationships, key-value stores, document stores, search indexes, object storage, time-series databases]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: jarvis
+    line: I've found where A.I.M. keeps the grid's data, sir. All of it. In one database.
+  - who: tony
+    line: One database? For sensor streams, invoices, staff photos and search?
+  - who: killian
+    line: (on the lobby screen) One licence, one vendor, one bill. Elegant, isn't it?
+  - who: pepper
+    line: Expensive, is what it is. And slow, apparently.
+  - who: jarvis
+    line: Different data wants different homes. Let's learn which home suits which data.
+clue: A.I.M. had crammed **a second-by-second sensor stream into the invoice database**.
+outro:
+  - who: pepper
+    line: (on speaker) Mr Killian, consider the A.I.M. licence cancelled. Effective immediately.
+  - who: killian
+    line: You'll be back, Ms Potts. Everyone comes back to Extremis.
+  - who: tony
+    line: Sensor data in a time-series store, invoices in SQL, photos in object storage. Was that so hard?
