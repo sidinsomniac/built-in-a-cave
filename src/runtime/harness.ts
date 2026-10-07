@@ -211,7 +211,7 @@ export async function runMission(mission: Mission, win: Window & typeof globalTh
       if (err instanceof CheckFailed || (err instanceof Error && err.constructor.name === "CheckFailed")) {
         outcome = { name: t.name, passed: false, kind: "check", message: err.message };
       } else if (err instanceof Error && err.message === "__timeout__") {
-        outcome = { name: t.name, passed: false, kind: "timeout", message: "The spell ran for too long. Is something waiting forever, or looping?" };
+        outcome = { name: t.name, passed: false, kind: "timeout", message: "The code ran for too long. Is something waiting forever, or looping?" };
       } else {
         outcome = { name: t.name, passed: false, kind: "crash", message: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
       }

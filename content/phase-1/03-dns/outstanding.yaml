@@ -1,5 +1,6 @@
 tier: outstanding
 type: estimate
+covers: [TTL, caching]
 title: The Cost of a Tiny TTL
 task: |
   Stark Industries' authoritative DNS server sees **1,000,000 busy resolvers**,

@@ -8,9 +8,22 @@ concepts: [domain names, IP addresses, resolvers, root servers, TLD servers, aut
 exercises: [warmup, core, outstanding]
 scene:
   - who: tony
-    line: Packets are leaving the building. They're just going to the wrong place. Like a very fast, very confused intern.
+    line: Packets are leaving the building. They're just going to the wrong place. Like a very fast, very lost intern.
+  - who: happy
+    line: I restarted the internet box. Twice. Is it DNS? It's always DNS.
   - who: peter
-    line: (on speaker) Sorry, quick question - how does `expo.stark.com` even turn into a number in the first place?
+    line: (on speaker) Sorry - quick question. How does expo.stark.com even turn into a number?
   - who: jarvis
-    line: An excellent question, Mr Parker. The answer is a system called DNS, and if it's been tampered with, every visitor goes exactly where they're told - to the wrong place.
+    line: An excellent question, Mr Parker. The answer is DNS - the internet's phone book.
+  - who: jarvis
+    line: And if someone edited the phone book, every visitor goes exactly where they're told. Shall we read it?
 clue: The Expo's DNS record was changed **last Tuesday** - and its TTL was set to almost zero, so the bad answer reached everyone at once.
+outro:
+  - who: jarvis
+    line: The record changed last Tuesday, with a TTL of five seconds. Someone wanted the change to spread fast.
+  - who: happy
+    line: Last Tuesday? I was at the dentist. I have a receipt.
+  - who: tony
+    line: Nobody's accusing you, Happy. Yet. Fixing the record gets visitors to the right door.
+  - who: jarvis
+    line: The right door, sir - but it isn't opening. Connections start, then die. That's the next layer down.

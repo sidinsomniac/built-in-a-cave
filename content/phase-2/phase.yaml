@@ -5,8 +5,10 @@ summary: Machine coding - interview-grade utilities and components, built under 
 theme: { accent: "#ffb43c", accent2: "#ff5a3c", glow: "#3a2810" }
 intro:
   - who: narrator
-    line: Stark's workshop smells of solder and coffee. On the bench, a half-built suit; on every screen, its heads-up display - a React app.
+    line: Stark's workshop smells of solder and coffee. On the bench, a half-built suit. On every screen, its heads-up display - a React app.
   - who: tony
-    line: The HUD stutters in flight. Targets flicker, readings go stale, the controls freeze when I need them most. Fix my software and you can have a desk with a window.
+    line: The HUD stutters in flight. Targets flicker, readings go stale, and the controls freeze when I need them most.
+  - who: tony
+    line: Fix my software and you get a desk with a window. Break it and you get Dummy as a desk mate.
   - who: jarvis
-    line: Every glitch is a classic bug with a classic cure, sir. I'll ask; our new engineer will build.
+    line: Every glitch is a classic bug with a classic cure, sir. I'll ask; our engineer will build.

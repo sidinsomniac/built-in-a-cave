@@ -9,14 +9,13 @@ A **debounced** function only runs once the calls **stop** for a while. Every
 new call **restarts** the wait. Only the **last** call's arguments are used.
 
 ```diagram
-title: debounce(search, 300) while typing "lumos"
+title: debounce(search, 300) while typing "mark"
 steps:
-  - Typed "l" at 0 ms - a 300 ms wait starts
-  - Typed "lu" at 80 ms - the wait restarts
-  - Typed "lum" at 150 ms - restarts again
-  - Typed "lumo" at 220 ms - restarts again
-  - Typed "lumos" at 290 ms - restarts again
-  - Silence. At 590 ms the wait finishes - search("lumos") runs once.
+  - Typed "m" at 0 ms - a 300 ms wait starts
+  - Typed "ma" at 80 ms - the wait restarts
+  - Typed "mar" at 150 ms - restarts again
+  - Typed "mark" at 220 ms - restarts again
+  - Silence. At 520 ms the wait finishes - search("mark") runs once.
 ```
 
 Use it for: search-as-you-type, auto-save, resize handlers.
@@ -44,6 +43,7 @@ q: You want to save a draft 1 second after the user STOPS typing. Which tool?
 options: ["Debounce", "Throttle"]
 answer: 0
 why: You want one call after the burst ends - that's debounce.
+covers: [debounce]
 ```
 
 ```checkpoint
@@ -51,6 +51,14 @@ q: You want a progress bar to update at most 10 times a second while a file uplo
 options: ["Debounce", "Throttle"]
 answer: 1
 why: A steady maximum rate during continuous events is throttling. A debounce would never fire while the updates kept coming.
+covers: [throttle]
+```
+
+```scene
+- who: peter
+  line: So for the HUD, debounce the lookups and throttle the position updates?
+- who: jarvis
+  line: Exactly. Now you know which tool. Next, you'll build both - from scratch.
 ```
 
 ## Things interviewers check
@@ -72,4 +80,30 @@ const counter = {
   bump: function () { this.count += 1; },
 };
 counter.bump(); // `this` is counter
+```
+
+## Debounce meets the network: stale answers
+
+A debounced search fires a request after each pause. But **requests don't come
+back in the order you sent them**. A slow answer for an old query can arrive
+*after* the answer for the new one, and overwrite it.
+
+```diagram
+title: Typing "ar", pausing, then typing "arc"
+steps:
+  - The user pauses after "ar" - the search for "ar" is sent (the server is slow today)
+  - The user types "c" and pauses again - the search for "arc" is sent
+  - The answer for "arc" arrives first - the box shows results for "arc"
+  - The answer for "ar" arrives late - if you show it, the box now lies
+```
+
+Two common cures: remember which request is the **latest** and ignore any other
+answer, or **cancel** the old request (with an `AbortController`) when a new one starts.
+
+```checkpoint
+q: The answer for an old query arrives after the answer for the new one. What should the search box show?
+options: ["The newest answer that arrived", "The answer for the latest query - ignore the late, old one", "Both, merged"]
+answer: 1
+why: The box must match what the user typed last. A late answer for an old query is stale.
+covers: [stale responses]
 ```

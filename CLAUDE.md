@@ -12,6 +12,9 @@ Update `docs/HANDOFF.md` in the **same commit** as any change to status, counts,
 - **Zero prior knowledge.** Hand-holding first, easy to hard. Cases climb Mark I → III → VII → the Brief.
 - **AI engineering is out of scope.** No AI is needed anywhere: grading is deterministic.
 - **Client-only.** MSW and mock-socket for realistic API and socket responses; a seeded simulation for designs. Never use `Math.random` or `Date.now` in the simulation or the tests.
+- **The lesson comes first; the story seasons it.** Rich scenes with subtext, a mid-lesson beat and an outro, but at most 25 words a line (40 for the narrator), everyday words, and every all-caps term in `content/glossary.yaml`. Rules: `docs/story.md`.
+- **Teach before you test.** Assume zero prior knowledge: a plain explanation, a worked example and a checkpoint before any exercise needs an idea. Design tables get a guided build (`steps:`) at Mark I, and every component has a Field Manual page.
+- **Scaffold comments fade, difficulty climbs.** Warm-up starters get guiding-question comments, cores an outline plus the twist, and outstandings only the goal. The ⭐ must be harder than the 🔥, and every lesson concept must be practised (`covers:`). Rules: `docs/exercise-design.md` §2.
 - **Build one Phase at a time.** Script it in `docs/story.md`, then build its content, then validate, test, commit and push.
 - The franchise lives in `src/lore/`. This is a personal, non-commercial fan project.
 
@@ -24,5 +27,6 @@ npm run validate-content && npm test && npm run build && CHROMIUM_PATH="/Applica
 - Quote YAML values that contain `: `.
 - No lecture example may solve a core challenge. No hint may contain a solution line of 12 characters or more, or name an exact required design setting.
 - Every case needs a `reference` design (🟢 on every scenario and curveball) and a `naive` one (🔴). **Calibrate by running it**, never by guessing numbers. When another architecture is equally valid, make sure the rubric checkers accept it too.
-- Diagram and checkpoint blocks are YAML: never start a step with a quoted word.
+- Diagram, checkpoint and scene blocks are YAML: never start a step with a quoted word.
+- Two timers due at the same simulated millisecond fire in the order they were scheduled. When a test races a slow response against a newer request, leave a clear gap between them.
 - The sandbox loads a classic IIFE script (`npm run build:sandbox`), never a module script, because of CORS from an opaque origin.

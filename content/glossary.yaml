@@ -1,0 +1,107 @@
+# Plain-words definitions. The first use of a term in any lecture, guide, step or
+# task gets a dotted underline; hover or tap it for the definition.
+# Keep each definition to one or two short sentences a newcomer can follow.
+# `match:` lists other spellings to underline (case-insensitive, whole words).
+
+API:
+  def: Application Programming Interface - the menu of requests a program accepts from other programs, like "GET /links/42".
+asynchronous:
+  def: Done later, not while someone waits. The request answers now; the slow work happens in the background.
+  match: [asynchronously, async]
+authoritative server:
+  def: The DNS server that holds the real records for a domain. Everyone else only points to it or caches its answers.
+  match: [authoritative servers, authoritative name servers]
+base62:
+  def: Writing numbers with 62 "digits" (0-9, a-z, A-Z) instead of 10, so big numbers fit in very few characters.
+cache:
+  def: A small, fast store holding copies of data that's asked for often, so most requests skip the slow trip to the database.
+  match: [caches, cached, caching]
+cache-aside:
+  def: Check the cache first; on a miss, read the database and put the answer in the cache for next time.
+CDN:
+  def: Content Delivery Network - servers spread around the world that keep copies of your content close to users.
+client:
+  def: The program asking for something - usually a browser or a phone app.
+  match: [clients]
+closure:
+  def: A function that remembers variables from where it was created, even after that outer function has finished.
+  match: [closures]
+collide:
+  def: When two different things end up with the same code or key.
+  match: [collision, collisions]
+debounce:
+  def: Wait until calls stop for a set time, then run once with the last call's arguments.
+  match: [debouncing, debounced]
+DNS:
+  def: Domain Name System - the internet's phone book, turning names like expo.stark.com into IP addresses.
+endpoint:
+  def: One specific request an API accepts - a method plus a path, like POST /links.
+  match: [endpoints]
+fake timers:
+  def: A test tool that replaces the real clock, so a test can jump forward 100 ms instantly instead of waiting.
+hit rate:
+  def: The share of reads a cache answers itself. The rest are misses that go on to the database.
+hot key:
+  def: One single key that gets a huge share of all traffic - a viral link, a celebrity's profile.
+HTTP:
+  def: The language browsers and servers speak - requests with a method (GET, POST...) and responses with a status code.
+idempotent:
+  def: Safe to repeat - doing it twice has the same effect as doing it once.
+IP address:
+  def: The number that identifies a machine on the internet, like 203.0.113.7.
+  match: [IP addresses, IP]
+key-value store:
+  def: A database built for one job - "give me the value for this key" - done fast at huge scale.
+  match: [key-value stores]
+latency:
+  def: How long one request takes, from asking to getting the answer.
+load balancer:
+  def: The front door that spreads incoming requests evenly across copies of a service.
+  match: [load balancers]
+p99:
+  def: The time that 99% of requests beat. If p99 is 50 ms, only 1 request in 100 is slower than 50 ms.
+partition:
+  def: One slice of a big database. Keys are split across partitions so no single machine holds or serves everything.
+  match: [partitions, partitioned]
+queue:
+  def: A waiting line for work. Producers drop messages on it; workers pick them up later.
+  match: [queues]
+RADIO:
+  def: "A five-part shape for a design answer: Requirements, Architecture, Data model, Interface, Optimisations."
+rate limit:
+  def: A cap on how many requests one user may send in a period. Extra requests get "429 Too Many Requests".
+  match: [rate limiting, rate-limit, rate limited]
+replica:
+  def: A copy - of a service, or of a database's data - for more capacity and to survive one dying.
+  match: [replicas]
+resolver:
+  def: The DNS server that does the lookup legwork on your behalf, then caches the answer.
+  match: [resolvers, recursive resolver]
+root server:
+  def: The top of the DNS tree. It only knows who handles each ending, like .com or .org.
+  match: [root servers]
+service:
+  def: Your application code running on servers, answering requests.
+single point of failure:
+  def: Any part with only one copy - when it dies, everything that depends on it stops.
+SQL database:
+  def: A relational database - tables of rows and columns you can query in rich ways (like Postgres or MySQL).
+  match: [SQL, SQL databases, relational database]
+stampede:
+  def: A flood of requests hitting the database at once, usually right after a cache empties.
+stateless:
+  def: Keeps nothing important in its own memory between requests, so any copy can answer any request.
+throttle:
+  def: Let calls through at most once per time window, at a steady pace.
+  match: [throttling, throttled]
+throughput:
+  def: How much work a system gets through per second.
+TLD:
+  def: Top-level domain - the last part of a name, like .com or .org.
+TTL:
+  def: Time to live - how many seconds a saved (cached) answer may be reused before it must be fetched fresh.
+working set:
+  def: The data people actually read in a period - often far smaller than everything stored.
+worker:
+  def: A background process that takes jobs off a queue and does the slow work.
+  match: [workers]

@@ -4,6 +4,7 @@ import { load as loadYaml } from "js-yaml";
 import { marked } from "marked";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AUDIT_ICON, STONES, type AuditItem } from "../engine/audit";
+import { linkTerms } from "../engine/glossary";
 import { CAST } from "../engine/content";
 import { useGame } from "../engine/store";
 import type { Hints, SceneLine } from "../engine/types";
@@ -173,8 +174,16 @@ export function Guide({ children }: { children: string }) {
   );
 }
 
-export function Markdown({ text }: { text: string }) {
-  const html = useMemo(() => marked.parse(text, { async: false }) as string, [text]);
+/** Renders markdown; the first use of each glossary term gets a plain-words tooltip. */
+export function Markdown({ text, terms = true }: { text: string; terms?: boolean }) {
+  const html = useMemo(() => {
+    const out = marked.parse(text, { async: false }) as string;
+    return terms ? linkTerms(out) : out;
+  }, [text, terms]);
+  return <Html html={html} />;
+}
+
+function Html({ html }: { html: string }) {
   return <div className="prose" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
@@ -182,15 +191,19 @@ export function Markdown({ text }: { text: string }) {
 // Lectures: markdown, plus ```diagram and ```checkpoint blocks.
 // ---------------------------------------------------------------------------
 
-type Segment = { kind: "md"; text: string } | { kind: "diagram"; title?: string; steps: string[] } | { kind: "checkpoint"; q: string; options: string[]; answer: number; why: string };
+type Segment =
+  | { kind: "md"; text: string }
+  | { kind: "diagram"; title?: string; steps: string[] }
+  | { kind: "checkpoint"; q: string; options: string[]; answer: number; why: string }
+  | { kind: "scene"; lines: SceneLine[] };
 
 export function splitLecture(markdown: string): Segment[] {
   const out: Segment[] = [];
-  const re = /^```(diagram|checkpoint)\n([\s\S]*?)^```\s*$/gm;
+  const re = /^```(diagram|checkpoint|scene)\n([\s\S]*?)^```\s*$/gm;
   let last = 0;
   for (const m of markdown.matchAll(re)) {
     out.push({ kind: "md", text: markdown.slice(last, m.index) });
-    let spec: Record<string, unknown>;
+    let spec: Record<string, unknown> & { lines?: SceneLine[] };
     try {
       spec = loadYaml(m[2]) as Record<string, unknown>;
     } catch (err) {
@@ -198,7 +211,8 @@ export function splitLecture(markdown: string): Segment[] {
       last = (m.index ?? 0) + m[0].length;
       continue;
     }
-    if (m[1] === "diagram") out.push({ kind: "diagram", title: spec.title as string | undefined, steps: (spec.steps as string[]) ?? [] });
+    if (m[1] === "scene") out.push({ kind: "scene", lines: (Array.isArray(spec) ? spec : spec.lines ?? []) as SceneLine[] });
+    else if (m[1] === "diagram") out.push({ kind: "diagram", title: spec.title as string | undefined, steps: (spec.steps as string[]) ?? [] });
     else out.push({ kind: "checkpoint", q: spec.q as string, options: spec.options as string[], answer: spec.answer as number, why: spec.why as string });
     last = (m.index ?? 0) + m[0].length;
   }
@@ -251,12 +265,46 @@ function Checkpoint({ q, options, answer, why }: { q: string; options: string[];
   );
 }
 
+/** A short story beat inside a lecture: a comms panel, read at a glance. */
+export function SceneBeat({ lines }: { lines: SceneLine[] }) {
+  return (
+    <div className="beat" data-testid="beat">
+      {lines.map((l, i) => {
+        const who = CAST[l.who] ?? { name: l.who, portrait: "🎞️" };
+        return (
+          <div key={i} className="scene-line">
+            <div className="portrait" aria-hidden="true">
+              {who.portrait}
+            </div>
+            <div>
+              {who.name && <div className="who">{who.name}</div>}
+              <div>{l.line}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Lecture({ markdown }: { markdown: string }) {
-  const segments = useMemo(() => splitLecture(markdown), [markdown]);
+  // Glossary terms are underlined once per lecture, so link every block in one pass.
+  const segments = useMemo(() => {
+    const seen = new Set<string>();
+    return splitLecture(markdown).map((s) => (s.kind === "md" ? { ...s, html: linkTerms(marked.parse(s.text, { async: false }) as string, seen) } : s));
+  }, [markdown]);
   return (
     <div className="lecture">
       {segments.map((s, i) =>
-        s.kind === "md" ? <Markdown key={i} text={s.text} /> : s.kind === "diagram" ? <Diagram key={i} title={s.title} steps={s.steps} /> : <Checkpoint key={i} {...s} />,
+        s.kind === "md" ? (
+          <Html key={i} html={(s as { html: string }).html} />
+        ) : s.kind === "diagram" ? (
+          <Diagram key={i} title={s.title} steps={s.steps} />
+        ) : s.kind === "scene" ? (
+          <SceneBeat key={i} lines={s.lines} />
+        ) : (
+          <Checkpoint key={i} {...s} />
+        ),
       )}
     </div>
   );

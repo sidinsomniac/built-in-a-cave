@@ -47,6 +47,8 @@ interface ExerciseBase {
   twist?: string;
   task: string;
   hints: Hints;
+  /** Which of the lesson's concepts this exercise practises (the validator checks every concept is covered). */
+  covers?: string[];
 }
 
 export interface CodeExercise extends ExerciseBase {
@@ -81,8 +83,8 @@ export interface EstimateExercise extends ExerciseBase {
 export type Exercise = CodeExercise | SequenceExercise | PredictExercise | EstimateExercise;
 
 export type ReviewCard =
-  | { id: string; type: "choice"; q: string; options: string[]; answer: number; why: string }
-  | { id: string; type: "order"; items: string[]; why: string };
+  | { id: string; type: "choice"; q: string; options: string[]; answer: number; why: string; covers?: string[] }
+  | { id: string; type: "order"; items: string[]; why: string; covers?: string[] };
 
 export interface Lesson {
   id: string;

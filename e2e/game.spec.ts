@@ -26,6 +26,9 @@ test("a lesson: an ordered sequence and a prediction, each graded into a zone", 
   await autoSkipScenes(page);
   await page.goto("/#/lesson/p1-l03");
   await expect(page.getByTestId("diagram").first()).toBeVisible();
+  // Jargon is underlined once, with a plain definition.
+  await expect(page.locator("abbr.term", { hasText: "DNS" }).first()).toHaveAttribute("data-def", /phone book/);
+  await expect(page.getByTestId("beat")).toContainText("reaches every resolver");
   await page.getByTestId("tab-warmup").click();
 
   // Put the DNS steps in order with the ▲ buttons.
@@ -83,6 +86,12 @@ test("a code mission runs in the sandbox: the starter fails with a question, a r
   await expect(page.getByTestId("test-results")).toContainText("3 of 3 tests passed");
   await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
   await expect(page.getByTestId("level")).toBeVisible();
+
+  // The ⭐ is a harder, race-safe search box: its starter carries only its goal.
+  await page.getByTestId("tab-outstanding").click();
+  await expect(page.getByTestId("editor")).toContainText("never show a stale answer");
+  await page.getByTestId("run-tests").click();
+  await expect(page.getByTestId("test-results")).toContainText("0 of 5 tests passed");
 });
 
 async function inspector(page: Page) {

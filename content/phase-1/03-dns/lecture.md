@@ -33,6 +33,15 @@ q: Which server holds the actual record for expo.stark.com?
 options: ["The root server", "The .com TLD server", "stark.com's authoritative server", "Your browser"]
 answer: 2
 why: Root and TLD servers only point the way. The authoritative server for stark.com holds its records.
+covers: [authoritative servers]
+```
+
+```checkpoint
+q: Why does DNS exist at all?
+options: ["Computers find each other by number, but people remember names", "To make websites load faster", "To encrypt traffic"]
+answer: 0
+why: Machines route by IP address; DNS turns the names people type into those addresses.
+covers: [domain names, IP addresses]
 ```
 
 ## TTL: how long an answer is trusted
@@ -50,6 +59,14 @@ q: A record has a TTL of 300 seconds. A resolver cached it 2 minutes ago. Does t
 options: ["Yes, every request asks the authoritative server", "No - it still has 3 minutes of trust left", "Only if the browser restarts"]
 answer: 1
 why: The cached answer stays valid until its TTL runs out - 300 seconds after it was fetched.
+covers: [TTL, caching]
+```
+
+```scene
+- who: tony
+  line: So a bad record with a TTL of almost zero...
+- who: jarvis
+  line: ...reaches every resolver on Earth within seconds, sir. Keep that number in mind.
 ```
 
 ## Why this matters in system design

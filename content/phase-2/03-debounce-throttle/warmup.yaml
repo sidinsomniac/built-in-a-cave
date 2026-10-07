@@ -1,5 +1,6 @@
 tier: warmup
 type: code
+covers: [timers, debounce, preserving this and arguments]
 title: The HUD Waits for Quiet
 solves: debounce.ts
 task: |
@@ -16,7 +17,15 @@ task: |
 files:
   debounce.ts: |
     export function debounce<T extends unknown[]>(fn: (...args: T) => void, wait: number) {
-      return (...args: T) => fn(...args);
+      // 1. The wrapper must remember one thing between calls. What is it,
+      //    and where can it live so every call sees the same one?
+
+      // 2. `this` inside fn should be whoever called the wrapper.
+      //    Does an arrow function give you that?
+      return (...args: T) => {
+        // 3. Each call should push the run later, so only the last call's arguments win.
+        fn(...args);
+      };
     }
 tests: |
   test("runs once, after the quiet period", () => {

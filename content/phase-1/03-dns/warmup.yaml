@@ -1,5 +1,6 @@
 tier: warmup
 type: sequence
+covers: [resolvers, root servers, TLD servers, authoritative servers]
 title: Follow the Question
 task: |
   Nothing is cached anywhere. Put the steps of resolving `expo.stark.com` in

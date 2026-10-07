@@ -11,7 +11,8 @@ import { join } from "node:path";
 import { load as loadYaml } from "js-yaml";
 import { describe, expect, it } from "vitest";
 import { auditDesign } from "../src/engine/audit";
-import { CASES, CAST, LESSONS, MANUAL } from "../src/engine/content";
+import { CASES, CAST, LESSONS, MANUAL, PHASES } from "../src/engine/content";
+import { undefinedAcronyms } from "../src/engine/glossary";
 import { checkStep } from "../src/engine/steps";
 import { gradeAssembly, gradeDesk, gradeEstimates, gradeInterrogation } from "../src/engine/stations";
 import type { CodeExercise, CodeStation, Lesson, SceneLine } from "../src/engine/types";
@@ -47,12 +48,48 @@ function solutionFor(dir: string, slot: string): string {
   return readFileSync(join(dir, file), "utf8");
 }
 
+/** Plain words: short lines, known speakers. The lesson is the meal; the story is the seasoning. */
+const MAX_WORDS = { narrator: 40, other: 25 };
 const checkScene = (lines: SceneLine[]) => {
   for (const l of lines) {
     expect(l.who && l.line, "every scene line needs who and line").toBeTruthy();
     expect(CAST[l.who], `unknown speaker "${l.who}" (add them to content/cast.yaml)`).toBeTruthy();
+    const words = l.line.split(/\s+/).filter(Boolean).length;
+    const max = l.who === "narrator" ? MAX_WORDS.narrator : MAX_WORDS.other;
+    expect(words, `a ${l.who} line has ${words} words (max ${max}) - split it or cut it: "${l.line}"`).toBeLessThanOrEqual(max);
   }
 };
+
+/** Every all-caps term in prose must be in content/glossary.yaml. */
+const expectPlainJargon = (where: string, text: string) => expect(undefinedAcronyms(text), `${where}: add these to content/glossary.yaml (or spell them out)`).toEqual([]);
+
+/** Comment lines in a starter file. */
+const commentLines = (code: string) =>
+  code
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("//") || l.startsWith("/*") || l.startsWith("*"));
+
+/**
+ * Scaffold comments fade by tier (docs/exercise-design.md §2): the warm-up gets guiding
+ * steps, the core an outline and its twist, the outstanding only its goal.
+ */
+function expectScaffold(ex: CodeExercise, solution: string) {
+  const starter = ex.files[ex.solves ?? Object.keys(ex.files)[0]];
+  const comments = commentLines(starter);
+  if (ex.tier === "warmup") expect(comments.length, `${ex.slot}: a warm-up starter needs at least 2 guiding comments`).toBeGreaterThanOrEqual(2);
+  if (ex.tier === "core") {
+    expect(comments.length, `${ex.slot}: a core starter needs 1-4 outline comments`).toBeGreaterThanOrEqual(1);
+    expect(comments.length).toBeLessThanOrEqual(4);
+    expect(comments.some((c) => /twist/i.test(c)), `${ex.slot}: a core starter should name its twist in a comment`).toBe(true);
+  }
+  if (ex.tier === "outstanding") expect(comments.length, `${ex.slot}: an outstanding starter gets its goal only (at most 2 comment lines)`).toBeLessThanOrEqual(2);
+  // A comment must never hand over a line of the solution.
+  const commentText = comments.join(" ").replace(/\s+/g, " ");
+  for (const line of solution.split("\n").map(norm)) {
+    if (line.length >= 12 && !line.startsWith("//")) expect(commentText.includes(line), `${ex.slot}: a starter comment contains the solution line: ${line}`).toBe(false);
+  }
+}
 
 const norm = (line: string) => line.trim().replace(/\s+/g, " ");
 
@@ -96,6 +133,19 @@ describe("lessons", () => {
         if (lesson.kind === "lesson") expect(lesson.notes.trim(), "missing notes.md").not.toBe("");
         checkScene(lesson.scene);
         checkScene(lesson.outro);
+        if (lesson.kind === "lesson") expect(lesson.outro.length, "every lesson needs an outro that pays off the clue").toBeGreaterThan(0);
+        expectPlainJargon("the lecture", lesson.lecture);
+        for (const ex of lesson.exercises) expectPlainJargon(`${ex.slot}'s task`, ex.task);
+        // The ramp: warm-up, then core, then outstanding - and code tests never get fewer.
+        const tiers = lesson.exercises.map((e) => e.tier);
+        expect(tiers, "exercises go warm-up → core → outstanding").toEqual([...tiers].sort((a, b) => ["warmup", "core", "outstanding"].indexOf(a) - ["warmup", "core", "outstanding"].indexOf(b)));
+        const testCounts = lesson.exercises.filter((e): e is CodeExercise => e.type === "code").map((e) => (e.tests.match(/^\s*test\(/gm) ?? []).length);
+        expect(testCounts, "each code tier should test at least as much as the one before").toEqual([...testCounts].sort((a, b) => a - b));
+        // Every concept the lesson teaches is practised somewhere.
+        const checkpointCovers = [...lesson.lecture.matchAll(/^```checkpoint\n([\s\S]*?)^```\s*$/gm)].flatMap((m) => ((loadYaml(m[1]) as { covers?: string[] }).covers ?? []));
+        const covered = new Set([...lesson.exercises.flatMap((e) => e.covers ?? []), ...lesson.review.flatMap((c) => c.covers ?? []), ...checkpointCovers]);
+        for (const c of covered) expect(lesson.concepts, `"${c}" is covered but isn't one of the lesson's concepts`).toContain(c);
+        if (lesson.kind === "lesson") for (const c of lesson.concepts) expect(covered.has(c), `concept "${c}" is never practised - add it to an exercise's, card's or checkpoint's covers:`).toBe(true);
         if (lesson.kind === "lesson") {
           expect(lesson.review.length, "2-4 review cards").toBeGreaterThanOrEqual(2);
           expect(lesson.review.length).toBeLessThanOrEqual(4);
@@ -103,6 +153,12 @@ describe("lessons", () => {
         }
         for (const card of lesson.review) {
           if (card.type === "choice") expect(card.answer >= 0 && card.answer < card.options.length, `card ${card.id}: answer out of range`).toBe(true);
+        }
+        for (const block of lesson.lecture.matchAll(/^```scene\n([\s\S]*?)^```\s*$/gm)) {
+          let lines: SceneLine[] = [];
+          expect(() => (lines = loadYaml(block[1]) as SceneLine[]), "a scene block isn't valid YAML").not.toThrow();
+          expect(Array.isArray(lines) && lines.length > 0 && lines.length <= 4, "a mid-lesson scene block is a list of 1-4 lines").toBe(true);
+          checkScene(lines);
         }
         for (const block of lesson.lecture.matchAll(/^```(checkpoint|diagram)\n([\s\S]*?)^```\s*$/gm)) {
           let spec: Record<string, unknown> = {};
@@ -122,7 +178,9 @@ describe("lessons", () => {
           if (ex.tier === "core") expect(ex.twist, "a core challenge needs a twist").toBeTruthy();
           if (ex.type === "code") {
             const blocks = ex.tier === "warmup" ? [] : lectureCode(lesson);
-            await proveCode(ex, solutionFor(lessonDir(lesson.id), ex.slot), blocks);
+            const solution = solutionFor(lessonDir(lesson.id), ex.slot);
+            await proveCode(ex, solution, blocks);
+            expectScaffold(ex, solution);
           } else if (ex.type === "sequence") {
             expect(new Set(ex.items).size, "sequence items must be unique").toBe(ex.items.length);
             expect(ex.items.length).toBeGreaterThanOrEqual(3);
@@ -151,6 +209,10 @@ describe("cases", () => {
       it("is well formed", () => {
         checkScene(c.scene);
         checkScene(c.outro);
+        for (const st of c.stations) {
+          expectPlainJargon(`${st.id}'s guide`, st.guide);
+          if (st.kind === "design") for (const step of st.steps ?? []) expectPlainJargon(`step ${step.id}`, `${step.goal}\n${step.teach}`);
+        }
         for (const st of c.stations) for (const rung of ["nudge", "question", "pseudocode", "flaw", "analogous"]) expect(st.hints?.[rung as keyof typeof st.hints], `${st.id}: hint rung ${rung}`).toBeTruthy();
       });
 
@@ -219,6 +281,10 @@ describe("cases", () => {
       }
     });
   }
+});
+
+describe("phases", () => {
+  for (const p of PHASES) it(`phase ${p.phase}'s intro is plain and well formed`, () => checkScene(p.intro));
 });
 
 describe("the Field Manual", () => {

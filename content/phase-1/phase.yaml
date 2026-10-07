@@ -5,10 +5,12 @@ summary: How the web actually works - from a click to a pixel, from scratch.
 theme: { accent: "#ff5a3c", accent2: "#ffc861", glow: "#3a1410" }
 intro:
   - who: narrator
-    line: The Stark Expo. Ten thousand people in the hall, forty million watching. Tony raises a hand, the big screen shows the Expo app - and the app goes dark. On every phone. Everywhere.
+    line: The Stark Expo. Ten thousand people in the hall, forty million watching online. Tony raises a hand - and the Expo app goes dark. Everywhere.
   - who: narrator
-    line: Then the lights go too. Somewhere below the stage, a blast door slams.
+    line: Then the lights die too. Somewhere below the stage, a blast door slams shut.
   - who: tony
-    line: (over a crackling line) Hi. Tony Stark. I'm in the sub-basement server vault, it's pitch black, and I'm told you're the new engineer. Congratulations, you're my favourite person.
+    line: (on a crackling line) Tony Stark. I'm locked in the server vault, in the dark. You're the new engineer? Great. You're my favourite person now.
   - who: jarvis
-    line: Good evening. I can patch you through to the vault terminal, but I'm afraid I won't do the work for you - I'll only ask questions. Shall we find out why the Expo is unreachable?
+    line: Good evening. I'll patch you into the vault terminal. I won't do the work for you - I'll only ask questions.
+  - who: jarvis
+    line: First question. Why can't anyone on Earth reach the Expo?

@@ -5,13 +5,24 @@ number: 3
 part: { n: 1, of: 2 }
 title: "Debounce and Throttle"
 location: The workshop bench
-concepts: [timers, debounce, throttle, leading and trailing calls, preserving this and arguments, fake timers]
+concepts: [timers, debounce, throttle, leading and trailing calls, preserving this and arguments, stale responses]
 exercises: [warmup, core, outstanding]
 scene:
   - who: tony
-    line: Every time I move my head, the HUD fires off a thousand target lookups. The servers hate me. More than usual.
+    line: Every time I turn my head, the HUD fires a thousand target lookups. The servers hate me. More than usual.
   - who: peter
     line: Couldn't it just... wait until you stop moving?
+  - who: tony
+    line: Who let the intern in? ...Fine. Good question. Annoyingly good.
   - who: jarvis
-    line: That is precisely the idea, Mr Parker. Waiting for quiet is called debouncing; letting a burst through at a steady pace is called throttling. Both are asked in nearly every front-end interview.
+    line: Waiting for quiet is called debouncing. Letting calls through at a steady pace is called throttling.
+  - who: jarvis
+    line: Both come up in nearly every front-end interview, Mr Parker. Shall we build them?
 clue: The HUD fired **1,200 lookups a second** during a head turn. Debounced, it fires **one**.
+outro:
+  - who: jarvis
+    line: One lookup per head turn, sir, instead of twelve hundred. The servers have stopped complaining.
+  - who: peter
+    line: Wait - Vanko's drone HUD has the exact same lag. Same bug. Same numbers.
+  - who: tony
+    line: Either he copied my code, or we both learned from the same bad tutorial. I want to know which.

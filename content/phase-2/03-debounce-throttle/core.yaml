@@ -1,5 +1,6 @@
 tier: core
 type: code
+covers: [throttle, leading and trailing calls, timers, preserving this and arguments]
 title: A Steady Pulse That Never Drops the Last Beat
 twist: edge case - the final call during a window must still run
 solves: throttle.ts
@@ -22,6 +23,8 @@ task: |
   ```
 files:
   throttle.ts: |
+    // Two states: idle (the next call runs now) or inside a window (calls wait their turn).
+    // Twist: the LATEST call made during a window must still run when the window ends.
     export function throttle<T extends unknown[]>(fn: (...args: T) => void, wait: number) {
       let last = 0;
       return function (this: unknown, ...args: T) {
@@ -67,7 +70,7 @@ tests: |
     track(2);
     clock.tick(100);
     clock.tick(500);
-    check(fn.calls.length === 2, `After a long quiet spell fn ran ${fn.calls.length} times. Should a quiet window run anything?`);
+    check(fn.calls.length === 2, `After a long quiet stretch fn ran ${fn.calls.length} times. Should a quiet window run anything?`);
     track(4);
     check(fn.calls.length === 3 && fn.calls[2][0] === 4, "After the throttle has gone idle, should the next call wait?");
   });

@@ -6,11 +6,13 @@ tagline: Turn long links into short ones - and redirect billions of clicks, fast
 brief: Design a URL shortener, like bit.ly. You've got forty-five minutes. Go.
 scene:
   - who: fury
-    line: S.H.I.E.L.D. shares thousands of links a day, and every one of them is a mile long. I want them short, I want them fast, and I want to know who clicked.
+    line: S.H.I.E.L.D. shares thousands of links a day. Every one of them is a mile long.
+  - who: fury
+    line: I want them short. I want them fast. And I want to know who clicked.
   - who: tony
     line: A URL shortener? I built one at fifteen. In a weekend. It was beautiful. It fell over on Monday.
   - who: jarvis
-    line: Which is exactly why we'll design it properly. We'll go station by station - questions first, then numbers, then the design. I'll ask; you build.
+    line: Which is why we'll design it properly, station by station - questions, then numbers, then the design. I'll ask; you build.
 outro:
   - who: rhodey
     line: Redirects from the cache, clicks on a queue, codes that can't collide. I've audited worse. Much worse. Mostly his.

@@ -182,3 +182,13 @@ label { display: block; }
 .manual dd { margin: 0; }
 @media (max-width: 560px) { .manual { grid-template-columns: 1fr; } .manual dd { margin-bottom: 6px; } }
 .metrics tr.differs td:nth-child(2) { color: var(--accent2); }
+
+/* Glossary terms: dotted underline, tooltip on hover or tap (focus) */
+abbr.term { text-decoration: underline dotted rgba(143, 216, 255, 0.7); text-underline-offset: 3px; cursor: help; position: relative; }
+abbr.term:hover::after, abbr.term:focus::after {
+  content: attr(data-def); position: absolute; left: 0; top: calc(100% + 6px); z-index: 40; width: max-content; max-width: min(320px, 80vw);
+  background: #071019; color: var(--ink); border: 1px solid rgba(143, 216, 255, 0.5); border-radius: 8px; padding: 8px 10px;
+  font-size: 13px; line-height: 1.45; font-weight: 400; white-space: normal; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+abbr.term:focus { outline: none; background: rgba(143, 216, 255, 0.12); }
+.beat { border-left: 2px solid var(--accent2); background: var(--panel); border-radius: 0 10px 10px 0; padding: 10px 14px; margin: 14px 0; display: grid; gap: 8px; }

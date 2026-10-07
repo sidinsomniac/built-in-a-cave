@@ -6,7 +6,22 @@
 **Software is the suit.** Stark Industries runs on systems: the suits' heads-up display, the Stark Expo apps, S.H.I.E.L.D.'s briefing network, the Helicarrier. Each Phase, something fails at scale, and the only way through is a system that holds. **Clues come out of your work:** a test that passes, a simulation that turns green, a trace that shows the slow hop. You literally debug the plot.
 
 ## Rules for writing scenes
-- **2–6 lines per beat.** The player came to build; the story is seasoning.
+**The lesson is the meal; the story is the seasoning.** Story should be about a fifth of play time at most. It should make you want to build, then get out of the way.
+
+**Plain words** (the validator enforces the first two):
+- **At most 25 words a line** (40 for the narrator). Split a long line in two, or cut it.
+- **No jargon the player hasn't met.** Every all-caps term (DNS, TTL, p99...) must be in `content/glossary.yaml`, which underlines its first use with a plain definition.
+- Short sentences, everyday words. A character can be witty; they can't be cryptic.
+
+**Shape of a lesson's story:**
+- **Scene (3–7 lines):** the hook. Something is broken or strange, and it's personal to someone. Use subtext: characters say less than they mean (Happy is defensive, Tony deflects with jokes, Fury never says please).
+- **One mid-lesson beat (1–4 lines),** written as a ` ```scene ` block inside the lecture, at a checkpoint. It ties the idea just taught to the mystery ("so a near-zero TTL means...").
+- **Clue:** one sentence that the player's own work reveals.
+- **Outro (2–5 lines):** pays off the clue and points to the next lesson. Every lesson needs one.
+
+**Character arcs stay consistent** (see *The cast* below). Plots and clues are fixed once built; later lessons build on them.
+
+**Other rules:**
 - **Every beat ends with a reason to build:** a clue, a failure, a dare.
 - **No canon quote longer than a few words.** Characters speak in their own style, in new lines.
 - **The mentor never answers.** JARVIS asks; Rhodey audits; Fury pressures; nobody hands over the design.

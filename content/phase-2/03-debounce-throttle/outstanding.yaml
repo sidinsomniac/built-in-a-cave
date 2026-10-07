@@ -1,24 +1,132 @@
 tier: outstanding
-type: predict
-title: Read the Timeline
+type: code
+title: A Search Box That Never Lies
+covers: [debounce, timers, stale responses]
+solves: search.ts
 task: |
-  `const save = debounce(saveDraft, 100)` (the debounce you just wrote). The
-  user's edits call `save()` at **0 ms, 50 ms, 120 ms and 300 ms**. When does
-  `saveDraft` actually run?
-options:
-  - At 100 ms and 400 ms
-  - At 220 ms and 400 ms
-  - At 150 ms, 220 ms and 400 ms
-  - Only at 400 ms
-answer: 1
-why: "The call at 50 ms restarts the wait (to 150 ms), and the call at 120 ms restarts it again (to 220 ms) - so the first burst saves once, at 220 ms. The call at 300 ms starts a fresh wait that ends at 400 ms."
+  The HUD's target search queries the server as the pilot types. Write
+  `createSearch(show)` in `search.ts`. It returns a function `search(query)`
+  that the input calls on every keystroke.
+
+  - Wait for **200 ms of quiet** typing, then fetch `GET /search?q=<query>`
+    (encode the query for a URL). The server answers `{ "results": [...] }`;
+    pass the array to `show(results)`.
+  - Answers can arrive **out of order**. Only ever show the answer for the
+    **latest** query you sent; a late answer for an older query must be ignored.
+  - An **empty** query (or only spaces) calls `show([])` straight away, sends
+    nothing, and cancels any search still waiting or in flight.
+
+  ```ts
+  const search = createSearch((results) => render(results));
+  search("a"); search("ar"); search("arc");
+  // 200 ms after "arc": one request, GET /search?q=arc
+  ```
+files:
+  search.ts: |
+    // Search as the pilot types: wait for a pause, fetch, and never show a stale answer.
+    export function createSearch(show: (results: string[]) => void) {
+      return (query: string) => {};
+    }
+mocks:
+  - { path: /search, query: "q=arc", json: { results: ["Arc Reactor Mk II", "Arc welder"] }, delay: 50 }
+  - { path: /search, query: "q=ar", json: { results: ["Armor", "Arm actuator", "Arc Reactor Mk II"] }, delay: 400 }
+  - { path: /search, query: "q=mark%203%264", json: { results: ["Mark 3 & 4 schematics"] }, delay: 10 }
+tests: |
+  test("waits for a pause, then sends one request for the last query", async () => {
+    const clock = useFakeTimers();
+    const { createSearch } = load("search.ts");
+    const show = spy();
+    const search = createSearch(show);
+    search("a");
+    search("ar");
+    search("arc");
+    check(api.calls("/search").length === 0, "Three keystrokes in a burst. Should anything be sent before 200 ms of quiet?");
+    await clock.tickAsync(200);
+    const sent = api.calls("/search");
+    check(sent.length === 1, `After the pause, ${sent.length} requests were sent. How many queries does a burst deserve?`);
+    check(sent[0].query === "?q=arc", `The request asked for ${JSON.stringify(sent[0]?.query)}. Which keystroke's query should win?`);
+    await clock.tickAsync(60);
+    check(show.calls.length === 1, `show() ran ${show.calls.length} times after the answer arrived. Did you read the response and pass on its results?`);
+    check(JSON.stringify(show.calls[0][0]) === JSON.stringify(["Arc Reactor Mk II", "Arc welder"]), "show() should get the `results` array from the server's answer.");
+  });
+
+  test("a slow, old answer never overwrites a newer one", async () => {
+    const clock = useFakeTimers();
+    const { createSearch } = load("search.ts");
+    const show = spy();
+    const search = createSearch(show);
+    search("ar");
+    await clock.tickAsync(200);
+    await clock.tickAsync(100);
+    search("arc");
+    await clock.tickAsync(200);
+    await clock.tickAsync(60);
+    check(show.calls.length === 1 && show.calls[0][0][0] === "Arc Reactor Mk II", "The answer for \"arc\" arrived first. Did it get shown?");
+    await clock.tickAsync(500);
+    check(show.calls.length === 1, `The slow answer for "ar" arrived last, and show() ran ${show.calls.length} times. Is "ar" still what the pilot is looking for?`);
+  });
+
+  test("clearing the box clears the results at once and cancels the rest", async () => {
+    const clock = useFakeTimers();
+    const { createSearch } = load("search.ts");
+    const show = spy();
+    const search = createSearch(show);
+    search("ar");
+    await clock.tickAsync(100);
+    search("   ");
+    check(show.calls.length === 1 && Array.isArray(show.calls[0][0]) && show.calls[0][0].length === 0, "An empty box should show an empty list straight away - without waiting.");
+    await clock.tickAsync(1000);
+    check(api.calls("/search").length === 0, "The pilot cleared the box before the pause ended. Should the old search still be sent?");
+    check(show.calls.length === 1, "Nothing should be shown after the box was cleared.");
+    search("ar");
+    await clock.tickAsync(200);
+    search("");
+    await clock.tickAsync(1000);
+    check(show.calls.length === 2, "A search was already in flight when the box was cleared. Should its late answer appear in an empty box?");
+  });
+
+  test("two search boxes don't interfere", async () => {
+    const clock = useFakeTimers();
+    const { createSearch } = load("search.ts");
+    const left = spy();
+    const right = spy();
+    const searchLeft = createSearch(left);
+    const searchRight = createSearch(right);
+    searchLeft("arc");
+    searchRight("arc");
+    await clock.tickAsync(260);
+    check(api.calls("/search").length === 2, "Two separate boxes each searched once. Do they share one timer?");
+    check(left.calls.length === 1 && right.calls.length === 1, "Each box should show its own answer. Does one box's search cancel or hide the other's?");
+  });
+
+  test("queries are encoded for a URL", async () => {
+    const clock = useFakeTimers();
+    const { createSearch } = load("search.ts");
+    const show = spy();
+    createSearch(show)("mark 3&4");
+    await clock.tickAsync(250);
+    const sent = api.calls("/search");
+    check(sent.length === 1 && sent[0].query === "?q=mark%203%264", `The request went to ${JSON.stringify(sent[0]?.query)}. What happens to a space or an & in a URL?`);
+    check(show.calls.length === 1 && show.calls[0][0][0] === "Mark 3 & 4 schematics", "The encoded query should still find its results.");
+  });
 hints:
-  nudge: Draw the time line. After each call, where does the finish line move to?
-  question: When the call at 120 ms arrives, has the previous wait finished yet?
+  nudge: Two separate problems - waiting for a pause (you built that in the warm-up), and knowing which answer is the latest when it comes back.
+  question: When an answer arrives, how could your code tell whether a newer search has started since this one was sent?
   pseudocode: |
-    for each call: the run moves to (call time + 100)
-    a run happens only if no new call arrives before it
-  flaw: If you picked 100 ms, you forgot that the call at 50 ms restarted the wait.
+    keep: the pending timer, and a counter for "which search is the latest"
+    on each call:
+        cancel the pending timer
+        if the query is blank: bump the counter (so in-flight answers are ignored), show an empty list, stop
+        otherwise start a 200 ms timer that:
+            bumps the counter and remembers this search's number
+            fetches the encoded query, reads the JSON
+            shows the results only if its number is still the latest
+  flaw: If an old answer still appears, nothing compares the answer's search with the newest one. If spaces break the URL, the query wasn't encoded.
   analogous: |
-    A lift door that reopens every time someone steps in: it only closes
-    once nobody has arrived for the full few seconds.
+    let ticket = 0;
+    async function loadProfile(id) {
+      const mine = ++ticket;
+      const profile = await getProfile(id);
+      if (mine !== ticket) return; // someone asked for a newer profile meanwhile
+      render(profile);
+    }

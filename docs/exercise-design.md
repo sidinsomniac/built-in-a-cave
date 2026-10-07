@@ -1,20 +1,23 @@
 # Exercise Design: How Lessons, Missions and Cases Are Built
 
-This is the authoring contract. The content validator (`scripts/validate-content.mjs`) enforces every **must** below.
+This is the authoring contract. The content validator (`scripts/validate-content.test.ts`, run by `npm run validate-content`) enforces every **must** below.
 
 ## 1. Lesson anatomy
 Every ordinary lesson has:
-1. **A scene:** 2–6 lines, ending with a reason to build.
-2. **A lecture** (`lecture.md`), with:
+1. **A scene:** 3–7 lines, ending with a reason to build, plus a `clue` and an `outro` that pays it off (writing rules: `docs/story.md`).
+2. **A lecture** (`lecture.md`), written for **zero prior knowledge**: every idea gets a plain explanation, a worked example and a checkpoint before any exercise relies on it. It has:
    - **interactive diagrams** (`diagram` fences: a request flow, the event loop, the render pipeline, a component tree), which play step by step;
    - **checkpoints** (`checkpoint` fences: `q`, `options`, `answer`, `why`);
+   - **one story beat** (a `scene` fence: a YAML list of 1–4 `who`/`line` entries) at a checkpoint, tying the idea to the mystery;
    - **"Try it"** sandboxes (`tsx` and `ts` fences run in the sandbox; `sim` fences open a mini design table).
 3. **Three exercises:**
    - 🌱 **Warm-up**: guided, and close to the lecture.
    - 🔥 **Core**: always has a **twist** (§3) and hidden edge cases.
    - ⭐ **Outstanding**: optional, a stretch.
 4. **Revision cards** (`review.yaml`): 2–4 cards for the Time Vault. At least one must be `choice` (the Sparring room uses them).
-5. **A spellbook-style recap** (`notes.md`): the page the player unlocks for reference.
+5. **A recap** (`notes.md`): the page the player unlocks for reference.
+6. **Coverage:** the lesson's `concepts` list is a promise. Every concept must be practised by at least one exercise, review card or checkpoint, each of which declares `covers: [...]`. The validator checks that nothing taught goes unpractised.
+7. **Plain words:** glossary terms (`content/glossary.yaml`) are underlined with a definition on first use. Any all-caps jargon in a lecture, task, guide or step must be in the glossary.
 
 Revision lessons ("Briefing Room") have three exercises, `r1`–`r3`, mixing earlier ideas. Trials have stages (`stage1`…`stageN`).
 
@@ -22,12 +25,23 @@ Revision lessons ("Briefing Room") have three exercises, `r1`–`r3`, mixing ear
 - **No lecture example may solve a core or ⭐ challenge.** The validator runs every lecture code block, and every lecture `sim`, against each core's checks, and they must fail.
 - **No hint may contain a solution line** of 12 characters or more. For designs, no hint may name the exact component setting the rubric requires; describe it as a question instead.
 
-## 2. Tiers and support levels
-| Tier | Support |
-|---|---|
-| 🌱 Warm-up | the lecture's idea, one step further; hints free |
-| 🔥 Core | a twist; full hint ladder (nudge → question → pseudocode → flaw → analogous) |
-| ⭐ Outstanding | combines ideas or adds scale; full ladder |
+## 2. Tiers, the difficulty ramp and scaffold comments
+| Tier | What it asks | Scaffold comments in the starter file (code) |
+|---|---|---|
+| 🌱 Warm-up | the lecture's worked example, applied directly, one step further | **2 or more guiding comments**, numbered, phrased as clues or questions ("The wrapper must remember one thing between calls. What is it?") |
+| 🔥 Core | the same idea plus **one twist** from §3, with hidden edge cases | **1–4 outline comments**, one of which names the twist ("Twist: the latest call during a window must still run") |
+| ⭐ Outstanding | **combines** this lesson with an earlier one, or needs a design decision, at interview grade | **the goal only**: at most 2 comment lines |
+
+**The ramp, as the validator enforces it:**
+- exercises are listed warm-up → core → outstanding;
+- each code tier has **at least as many tests** as the one before;
+- a core always has a twist;
+- no starter comment may contain a solution line (12+ characters), the same rule as hints.
+
+**The ramp, as authors judge it:**
+- the ⭐ must feel clearly harder than the 🔥;
+- a multiple-choice ⭐ after a code 🔥 is a step *down*, so move it to a review card instead;
+- comments nudge the player's thinking. They never dictate code.
 
 **Cases** are played at **Mark levels** (GDD §6):
 - **Mark I:** guided, partly pre-built, hints free.

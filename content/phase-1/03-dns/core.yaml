@@ -1,5 +1,6 @@
 tier: core
 type: predict
+covers: [TTL, caching, resolvers]
 title: What Does the Resolver Do?
 twist: trap - an expired TTL changes everything
 task: |

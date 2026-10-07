@@ -4,9 +4,18 @@
   options: ["Debounce", "Throttle", "Neither"]
   answer: 0
   why: One call after the burst ends - that's debounce.
+  covers: [debounce]
 - id: arrow-this
   type: choice
   q: Why does a debounce return a regular `function` rather than an arrow function?
   options: ["Arrow functions are slower", "So `this` is the object the wrapper was called on", "Arrow functions can't take arguments"]
   answer: 1
   why: An arrow function captures `this` from where it was written, not from how it's called.
+  covers: [preserving this and arguments]
+- id: timeline
+  type: choice
+  q: "`save = debounce(saveDraft, 100)` is called at 0, 50, 120 and 300 ms. When does saveDraft run?"
+  options: ["At 100 and 400 ms", "At 220 and 400 ms", "At 150, 220 and 400 ms", "Only at 400 ms"]
+  answer: 1
+  why: "The calls at 50 and 120 ms each restart the wait, so the first burst saves at 220 ms. The call at 300 ms saves at 400 ms."
+  covers: [debounce, timers]
