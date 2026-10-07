@@ -231,3 +231,24 @@ export function gradeAssembly(placements: Record<string, string>, chips: Chip[],
   ];
   return { zone, items };
 }
+
+/**
+ * The parts briefing: every card must be answered right to finish. Getting them
+ * right first time is optimal; a few second tries is solid; many is risky.
+ */
+export function gradeBriefing(picks: Record<number, number[]>, cards: { answer: number; q: string; why: string }[]): Graded {
+  const done = cards.every((c, i) => (picks[i] ?? []).includes(c.answer));
+  const firstTry = cards.filter((c, i) => (picks[i] ?? [])[0] === c.answer).length;
+  const zone = !done ? "failing" : firstTry === cards.length ? "optimal" : firstTry >= cards.length * 0.6 ? "solid" : "risky";
+  const items: AuditItem[] = cards.map((c, i) => {
+    const p = picks[i] ?? [];
+    return {
+      status: p[0] === c.answer ? "covered" : p.includes(c.answer) ? "partial" : "missing",
+      stone: "mind",
+      title: c.q,
+      question: "Open this part's Field Manual card above and read how it behaves.",
+      why: c.why,
+    };
+  });
+  return { zone, items };
+}

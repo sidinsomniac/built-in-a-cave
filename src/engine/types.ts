@@ -129,6 +129,20 @@ interface StationBase {
   hints: Hints;
 }
 
+/** A pre-case tour of the parts the case uses (Mark I only): one Field Manual card and one question each. */
+export interface BriefingCard {
+  kind: NodeKind;
+  q: string;
+  options: string[];
+  answer: number;
+  why: string;
+}
+
+export interface BriefingStation extends StationBase {
+  kind: "briefing";
+  cards: BriefingCard[];
+}
+
 export interface InterrogateStation extends StationBase {
   kind: "interrogate";
   budget: number;
@@ -183,7 +197,7 @@ export interface AssembleStation extends StationBase {
   chips: Chip[];
 }
 
-export type Station = InterrogateStation | EstimateStation | DesignStation | DeskStation | CodeStation | CurveballStation | AssembleStation;
+export type Station = BriefingStation | InterrogateStation | EstimateStation | DesignStation | DeskStation | CodeStation | CurveballStation | AssembleStation;
 
 export interface Case {
   id: string;
@@ -199,6 +213,8 @@ export interface Case {
   stations: Station[];
   reference: Design;
   naive: Design;
+  /** Lessons that teach this case's parts. Once all are passed, the briefing becomes a skippable recap. */
+  requires?: string[];
 }
 
 export const TIER_LABEL: Record<Tier, { label: string; icon: string }> = {
@@ -210,6 +226,7 @@ export const TIER_LABEL: Record<Tier, { label: string; icon: string }> = {
 };
 
 export const STATION_ICON: Record<Station["kind"], string> = {
+  briefing: "📘",
   interrogate: "❓",
   estimate: "🧮",
   design: "🗺",

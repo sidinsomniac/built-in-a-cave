@@ -136,13 +136,20 @@ async function connect(page: Page, from: string, toLabel: string) {
   await panel.getByTestId("connect-button").click();
 }
 
-test("the URL shortener case, at Mark I, through all seven stations", async ({ page }) => {
+test("the URL shortener case, at Mark I, through the briefing and all seven stations", async ({ page }) => {
   test.setTimeout(180_000);
   await autoSkipScenes(page);
   await page.goto("/#/case/b01");
 
-  // 1. Interrogate Pepper - two junk questions first, then the ones that matter.
+  // 0. The parts briefing (Mark I): one card per part, one question each.
   await expect(page.getByTestId("guide")).toBeVisible();
+  await page.getByTestId("briefing-cache-0").click();
+  await expect(page.getByTestId("briefing-cache")).toContainText("Not quite");
+  for (const [kind, answer] of [["lb", 0], ["service", 1], ["kvstore", 0], ["cache", 1], ["queue", 1], ["worker", 0]] as const) await page.getByTestId(`briefing-${kind}-${answer}`).click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "solid");
+  await page.getByTestId("next-station").click();
+
+  // 1. Interrogate Pepper - two junk questions first, then the ones that matter.
   for (const q of ["q-scale", "q-ratio", "q-latency", "q-analytics", "q-expiry", "q-alias"]) await page.getByTestId(`ask-${q}`).click();
   await expect(page.getByTestId("budget")).toContainText("6 / 6");
   await page.getByTestId("submit-station").click();
@@ -293,5 +300,9 @@ test("the URL shortener case, at Mark I, through all seven stations", async ({ p
   // Progress survives a reload.
   await page.reload();
   await expect(page.getByTestId("station-assemble")).toBeEnabled();
+  // Mark III has no briefing: it starts at the interrogation.
+  await page.getByTestId("mark-3").click();
+  await expect(page.getByTestId("station-briefing")).toHaveCount(0);
+  await expect(page.getByTestId("station-interrogate")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("mark-3")).toBeEnabled();
 });

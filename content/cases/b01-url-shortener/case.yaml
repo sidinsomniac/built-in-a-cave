@@ -21,6 +21,9 @@ outro:
   - who: fury
     line: Good. Now do it again - without JARVIS holding your hand.
 
+# Lessons that teach this case's parts (Phase 3). Once all are passed, the briefing is a skippable recap.
+requires: []
+
 # Extra settings this case adds to components on the design table.
 settings:
   service:
@@ -55,6 +58,74 @@ scenarios:
       - { id: create, label: Create link, op: write, rps: 40 }
 
 stations:
+  - id: briefing
+    kind: briefing
+    title: The Parts Box
+    guide: |
+      Before the interview starts, meet the parts you'll build with. Each card is one
+      component: what it is, what it's like, and how much it can take. Answer one quick
+      question per card. You can open the full Field Manual page any time - on the design
+      table too, from the ⓘ next to each part.
+    cards:
+      - kind: lb
+        q: Three copies of your service are running. Who decides which copy answers each request?
+        options:
+          - The load balancer
+          - The user's browser picks one at random
+          - The database
+        answer: 0
+        why: The load balancer is the front door. It spreads requests across the copies and stops sending to dead ones.
+      - kind: service
+        q: Each copy of a service handles about 1,000 requests a second. How many copies do 3,000 requests a second need, at the very least?
+        options: ["1", "3", "30"]
+        answer: 1
+        why: 3,000 ÷ 1,000 = 3 copies - and in practice a few more, for headroom and for when one dies.
+      - kind: kvstore
+        q: Which job is a key-value store best at?
+        options:
+          - Fetching one value by its key, very fast, at huge scale
+          - Joining three tables and adding up the results
+          - Storing hours of 4K video
+        answer: 0
+        why: Give it a key, get the value back. That's all it does - and it does it at any scale.
+      - kind: cache
+        q: A link is clicked a million times today. With a cache in front of the database, roughly how many of those clicks reach the database?
+        options:
+          - About a million - every click still goes there
+          - Only the first one, and again each time the cached copy expires (its TTL)
+          - None, ever - the database is never needed again
+        answer: 1
+        why: The first miss fills the cache; every later click is a hit until the entry expires.
+      - kind: queue
+        q: Recording a click takes 20 ms. Should the user wait for it before being redirected?
+        options:
+          - Yes - the click must be saved before anything else happens
+          - No - drop a message on a queue, redirect now, and record the click a moment later
+        answer: 1
+        why: The user only wants the redirect. The click can be saved in the background, so the queue lets the request answer at once.
+      - kind: worker
+        q: Click messages pile up in the queue faster than they're saved. What helps?
+        options:
+          - More workers taking messages off the queue
+          - A second load balancer
+          - A longer TTL on the cache
+        answer: 0
+        why: Each worker drains about 2,000 messages a second. If messages arrive faster, add workers.
+    hints:
+      nudge: Each card's text holds the answer to its question. Read the "Think of it as" line first.
+      question: For each part, what is the ONE job it's there to do?
+      pseudocode: |
+        load balancer: spreads requests
+        service: does the work, one copy has a fixed capacity
+        key-value store: fetch by key
+        cache: remember popular answers for a while
+        queue + workers: do slow work later
+      flaw: If an answer makes the user wait for something they don't need, look again.
+      analogous: |
+        A restaurant: the host seats guests (load balancer), waiters serve (service),
+        the pantry stores (database), the counter keeps bestsellers handy (cache),
+        and the dish pile is washed later by the kitchen porters (queue and workers).
+
   - id: interrogate
     kind: interrogate
     title: Interrogate Pepper

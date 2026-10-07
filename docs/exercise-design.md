@@ -195,6 +195,16 @@ mark1:                         # guidance shown only at Mark I
 cards: review.yaml             # distilled key points for the Time Vault
 ```
 
+**The parts briefing** (optional, Mark I only) is the first station when a case is played before the lessons that teach its parts:
+```yaml
+requires: [p3-l04a, p3-l09]       # top level: once these are passed, the briefing is a skippable recap
+stations:
+  - id: briefing
+    kind: briefing
+    cards:                        # one per part; the card text comes from content/manual.yaml
+      - { kind: cache, q: "...", options: [...], answer: 1, why: "..." }
+```
+
 **Case rules the validator enforces:**
 - the `reference` design lands 🟢 on **every** scenario and curveball;
 - the `naive` design lands 🔴;

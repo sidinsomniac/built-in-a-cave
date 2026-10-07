@@ -149,6 +149,7 @@ At every level, the design table **shows its working**:
 ## 7. The case mission (system design rounds)
 Each classic problem is played as stations that mirror a real 45–60 minute round:
 
+0. **The parts briefing** (Mark I only, until the matching lessons are passed). One Field Manual card per component the case uses, each with one question.
 1. **Interrogate Pepper** (Requirements). Functional and non-functional requirements; the scale and latency targets are revealed.
 2. **Estimation bench.** Requests per second, the read/write ratio, storage, bandwidth.
 3. **Design table** (backend) or **blueprint table** (front end) (Architecture). Built, then simulated.

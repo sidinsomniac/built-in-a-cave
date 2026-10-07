@@ -38,6 +38,8 @@ export interface StationRecord {
   ran?: boolean;
   stepsDone?: string[];
   stepAnswers?: Record<string, string>;
+  /** Parts briefing: every option picked for each card, in order. */
+  picks?: Record<number, number[]>;
 }
 
 export interface CaseProgress {

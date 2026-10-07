@@ -1,18 +1,17 @@
 // A system design case: seven stations, played at a chosen Mark (support level).
 import { useState } from "react";
-import { CAST, caseById } from "../engine/content";
+import { CAST, caseById, lessonById } from "../engine/content";
 import { useGame, type Mark, type StationRecord } from "../engine/store";
 import { STATION_ICON, type Station } from "../engine/types";
 import { minZone, passes, ZONES, type Zone } from "../engine/zones";
 import { MARK_LEVELS, MENTOR } from "../lore/lore";
 import type { Outcome } from "./boards";
 import { Cutscene, Guide, HintLadder, Markdown, ZoneBadge } from "./common";
-import { AssembleView, CodeView, CurveballView, DesignView, DeskView, EstimateView, InterrogateView, type StationProps } from "./stations";
+import { AssembleView, BriefingView, CodeView, CurveballView, DesignView, DeskView, EstimateView, InterrogateView, type StationProps } from "./stations";
 
 const EMPTY: StationRecord = { attempts: 0, hintsUsed: 0 };
 
 export function CaseView({ id }: { id: string }) {
-  const c = caseById(id);
   const progress = useGame((s) => s.cases[id]);
   const recordStation = useGame((s) => s.recordStation);
   const gradeStation = useGame((s) => s.gradeStation);
@@ -21,14 +20,21 @@ export function CaseView({ id }: { id: string }) {
   const [mark, setMark] = useState<Mark>(1);
   const [index, setIndex] = useState(0);
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
-  if (!c) return <p>Unknown case.</p>;
+  const exerciseRecords = useGame((s) => s.exercises);
+  const caseDef = caseById(id);
+  if (!caseDef) return <p>Unknown case.</p>;
+  // The parts briefing is Mark I only.
+  const c = { ...caseDef, stations: caseDef.stations.filter((st) => st.kind !== "briefing" || mark === 1) };
+  // Once every lesson that teaches the parts is passed, the briefing is a skippable recap.
+  const required = c.requires ?? [];
+  const partsLearned = required.length > 0 && required.every((lid) => (lessonById(lid)?.exercises ?? []).filter((e) => e.tier !== "outstanding").every((e) => passes(exerciseRecords[e.id]?.best ?? "failing")));
 
   const records = progress?.stations[mark] ?? {};
   const best = (st: Station): Zone | undefined => records[st.id]?.best;
   const stationOpen = (i: number) => i === 0 || c.stations.slice(0, i).every((st) => passes(best(st) ?? "failing"));
   const allPassed = c.stations.every((st) => passes(best(st) ?? "failing"));
   const overall = allPassed ? minZone(...c.stations.map((st) => best(st)!)) : null;
-  const station = c.stations[index];
+  const station = c.stations[Math.min(index, c.stations.length - 1)];
   const record = records[station.id] ?? EMPTY;
   const designRecord = records[c.stations.find((s) => s.kind === "design")?.id ?? ""]?.design;
   const hintCost = mark === 1 ? "free" : mark === 3 ? "−3 XP" : "−6 XP";
@@ -54,6 +60,7 @@ export function CaseView({ id }: { id: string }) {
 
   const view = (() => {
     switch (station.kind) {
+      case "briefing": return <BriefingView {...(props as StationProps<typeof station>)} skippable={partsLearned} />;
       case "interrogate": return <InterrogateView {...(props as StationProps<typeof station>)} />;
       case "estimate": return <EstimateView {...(props as StationProps<typeof station>)} />;
       case "design": return <DesignView {...(props as StationProps<typeof station>)} />;

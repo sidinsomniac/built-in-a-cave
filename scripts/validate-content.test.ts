@@ -14,7 +14,7 @@ import { auditDesign } from "../src/engine/audit";
 import { CASES, CAST, LESSONS, MANUAL, PHASES } from "../src/engine/content";
 import { undefinedAcronyms } from "../src/engine/glossary";
 import { checkStep } from "../src/engine/steps";
-import { gradeAssembly, gradeDesk, gradeEstimates, gradeInterrogation } from "../src/engine/stations";
+import { gradeAssembly, gradeBriefing, gradeDesk, gradeEstimates, gradeInterrogation } from "../src/engine/stations";
 import type { CodeExercise, CodeStation, Lesson, SceneLine } from "../src/engine/types";
 import { runMission } from "../src/runtime/harness";
 import { CAPACITY, COMPONENTS } from "../src/sim/components";
@@ -219,6 +219,17 @@ describe("cases", () => {
       for (const st of c.stations) {
         it(`${st.id} (${st.kind}) has a reference answer that lands optimal`, async () => {
           switch (st.kind) {
+            case "briefing": {
+              for (const card of st.cards) {
+                expect(MANUAL[card.kind], `briefing: no Field Manual page for ${card.kind}`).toBeTruthy();
+                expect(card.answer >= 0 && card.answer < card.options.length, `briefing ${card.kind}: answer out of range`).toBe(true);
+                expect(card.q.split(/\s+/).length, `briefing ${card.kind}: keep the question under 30 words`).toBeLessThanOrEqual(30);
+              }
+              const right = Object.fromEntries(st.cards.map((card, i) => [i, [card.answer]]));
+              expect(gradeBriefing(right, st.cards).zone).toBe("optimal");
+              for (const r of c.requires ?? []) expect(LESSONS.some((l) => l.id === r), `requires: unknown lesson ${r}`).toBe(true);
+              break;
+            }
             case "interrogate": {
               const all = st.pool.map((q) => q.id);
               const useful = st.pool.filter((q) => q.reveals.some((r) => st.requirements.find((x) => x.id === r)?.must)).map((q) => q.id);

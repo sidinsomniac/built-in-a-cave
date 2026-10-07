@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculate, gradeAssembly, gradeDesk, gradeEstimates, gradeInterrogation, type DeskCheck } from "./stations";
+import { calculate, gradeAssembly, gradeBriefing, gradeDesk, gradeEstimates, gradeInterrogation, type DeskCheck } from "./stations";
 import { coverageZone, designZone, estimateZone, marginZone, minZone, rubricZone, sequenceZone } from "./zones";
 
 describe("zones", () => {
@@ -87,5 +87,17 @@ describe("station graders", () => {
     const labels = { r: "Requirements", d: "Data model" };
     expect(gradeAssembly({ a: "r", b: "d" }, chips, labels).zone).toBe("optimal");
     expect(gradeAssembly({ a: "r", b: "d", x: "r" }, chips, labels).zone).toBe("risky");
+  });
+});
+
+describe("the parts briefing", () => {
+  const cards = [0, 1, 0, 1, 1].map((answer) => ({ answer, q: "q", why: "w" }));
+  it("is optimal when every card is right first time", () => {
+    expect(gradeBriefing({ 0: [0], 1: [1], 2: [0], 3: [1], 4: [1] }, cards).zone).toBe("optimal");
+  });
+  it("is solid with a couple of second tries, risky with many, failing until finished", () => {
+    expect(gradeBriefing({ 0: [1, 0], 1: [1], 2: [0], 3: [1], 4: [1] }, cards).zone).toBe("solid");
+    expect(gradeBriefing({ 0: [1, 0], 1: [0, 1], 2: [1, 0], 3: [1], 4: [1] }, cards).zone).toBe("risky");
+    expect(gradeBriefing({ 0: [0], 1: [1] }, cards).zone).toBe("failing");
   });
 });

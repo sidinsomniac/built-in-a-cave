@@ -4,15 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { auditDesign, type DesignReport } from "../engine/audit";
 import { compareDesigns } from "../engine/compare";
 import { checkStep, currentStep } from "../engine/steps";
-import { gradeAssembly, gradeDesk, gradeInterrogation, type Endpoint } from "../engine/stations";
+import { gradeAssembly, gradeBriefing, gradeDesk, gradeInterrogation, type Endpoint } from "../engine/stations";
 import type { Mark, StationRecord } from "../engine/store";
-import type { AssembleStation, Case, CodeStation, CurveballStation, DesignStation, DeskStation, EstimateStation, InterrogateStation, Station } from "../engine/types";
+import type { AssembleStation, BriefingStation, Case, CodeStation, CurveballStation, DesignStation, DeskStation, EstimateStation, InterrogateStation, Station } from "../engine/types";
 import type { Zone } from "../engine/zones";
+import { MANUAL } from "../engine/content";
 import { COMPONENTS } from "../sim/components";
-import type { Design, NodeLoad, SimResult } from "../sim/types";
+import type { Design, NodeKind, NodeLoad, SimResult } from "../sim/types";
 import { CodeBoard, EstimateBoard, OutcomePanel, type Outcome } from "./boards";
-import { AuditList, Gauge } from "./common";
+import { AuditList, Gauge, Markdown } from "./common";
 import { DesignTable, LoadBar, loadZone } from "./DesignTable";
+import { FieldManual } from "./FieldManual";
 import { GuidedSteps } from "./GuidedSteps";
 
 export interface StationProps<S extends Station> {
@@ -29,6 +31,75 @@ export interface StationProps<S extends Station> {
   passed: boolean;
   /** The learner's design from the design station (for curveballs). */
   design?: Design;
+}
+
+// ---------------------------------------------------------------------------
+// 📘 The parts briefing (Mark I)
+// ---------------------------------------------------------------------------
+
+export function BriefingView({ c, station, record, save, grade, outcome, setOutcome, skippable }: StationProps<BriefingStation> & { skippable: boolean }) {
+  const picks = record.picks ?? {};
+  const [open, setOpen] = useState<NodeKind | null>(null);
+  const pick = (i: number, option: number) => {
+    const next = { ...picks, [i]: [...(picks[i] ?? []), option] };
+    save({ picks: next });
+    const g = gradeBriefing(next, station.cards);
+    if (g.zone !== "failing") setOutcome({ ...g, xp: grade(g.zone) });
+  };
+  return (
+    <div className="stack">
+      {skippable && (
+        <div className="card row between">
+          <span className="small soft">You've passed the lessons that teach these parts. This briefing is a quick recap.</span>
+          <button className="btn small" onClick={() => setOutcome({ zone: "solid", items: [], xp: grade("solid") })} data-testid="skip-briefing">
+            Skip the recap
+          </button>
+        </div>
+      )}
+      <div className="briefing-grid">
+        {station.cards.map((card, i) => {
+          const spec = COMPONENTS[card.kind];
+          const page = MANUAL[card.kind];
+          const mine = picks[i] ?? [];
+          const right = mine.includes(card.answer);
+          return (
+            <div key={i} className={`card briefing-card ${right ? "done" : ""}`} data-testid={`briefing-${card.kind}`}>
+              <div className="row between">
+                <h3 style={{ margin: 0 }}>
+                  {spec.icon} {spec.name}
+                </h3>
+                <button className="linklike small" onClick={() => setOpen(card.kind)}>
+                  📘 Full page
+                </button>
+              </div>
+              <Markdown text={page.what} />
+              <p className="small soft">
+                <b>Think of it as:</b> {page.analogy}
+              </p>
+              <p className="small muted">
+                <b>Capacity:</b> {page.capacity}
+              </p>
+              <div className="step-ask">
+                <div>
+                  <b>❓</b> {card.q}
+                </div>
+                <div className="options" style={{ marginTop: 6 }}>
+                  {card.options.map((o, k) => (
+                    <button key={k} className={`btn small option ${mine.at(-1) === k ? "selected" : ""}`} disabled={right} onClick={() => pick(i, k)} data-testid={`briefing-${card.kind}-${k}`}>
+                      {o}
+                    </button>
+                  ))}
+                </div>
+                {mine.length > 0 && <p className={`small ${right ? "pass" : "fail"}`}>{right ? `✔ ${card.why}` : "✘ Not quite. Re-read the card above."}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <OutcomePanel outcome={outcome} />
+      {open && <FieldManual kind={open} extraSettings={c.settings[open]} onClose={() => setOpen(null)} />}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
