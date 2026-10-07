@@ -1,0 +1,27 @@
+tier: review
+type: sequence
+title: The Whole Story of One Tap
+task: |
+  Rebuild Pepper's timeline. A visitor taps the Expo app on a phone that has never visited
+  before. Put everything in order, up to the page arriving.
+items:
+  - The visitor taps the Expo app
+  - DNS turns expo.stark.com into an IP address
+  - Packets travel hop by hop to that address, port 443
+  - TCP's three-way handshake opens a connection
+  - TLS checks the certificate and sets up encryption
+  - The encrypted request reaches the server, which asks its database
+  - The response travels back and the page appears
+hints:
+  nudge: You can't send packets without an address, and you can't encrypt without a connection.
+  question: What does each step need from the step before it?
+  pseudocode: |
+    name -> address
+    address -> packets can travel
+    packets -> a connection (TCP)
+    connection -> a secure session (TLS)
+    secure session -> the request and response
+  flaw: If TLS comes before TCP, ask what the TLS messages would travel over.
+  analogous: |
+    Visiting someone: look up their address, travel there, knock and get let in,
+    check it's really them, then have the conversation.

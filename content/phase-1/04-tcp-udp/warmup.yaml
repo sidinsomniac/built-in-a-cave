@@ -1,0 +1,25 @@
+tier: warmup
+type: sequence
+title: The Handshake
+covers: [the three-way handshake, TCP]
+task: |
+  A phone opens a brand-new TCP connection to the Expo server and asks for the schedule.
+  Put the messages in order.
+items:
+  - "The phone sends SYN: I'd like to talk"
+  - "The server sends SYN-ACK: got it, I'd like to talk too"
+  - "The phone sends ACK: we're connected"
+  - The phone sends its request for the schedule
+  - The server sends back the schedule
+hints:
+  nudge: Nobody sends real data until both sides have agreed to talk.
+  question: Which message can only be sent after hearing the other side's reply?
+  pseudocode: |
+    ask to talk
+    agree, and ask back
+    confirm
+    then the request, then the response
+  flaw: If the request comes before the ACK, the connection isn't open yet.
+  analogous: |
+    A phone call: "Hello?" - "Hi, it's me, can you hear me?" - "Yes, loud and clear."
+    Only then: "So, about dinner..."

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculate, gradeAssembly, gradeBriefing, gradeDesk, gradeEstimates, gradeInterrogation, type DeskCheck } from "./stations";
+import { calculate, gradeAssembly, gradeBriefing, gradeDesk, gradeQuiz, gradeTradeoff, gradeEstimates, gradeInterrogation, type DeskCheck } from "./stations";
 import { coverageZone, designZone, estimateZone, marginZone, minZone, rubricZone, sequenceZone } from "./zones";
 
 describe("zones", () => {
@@ -99,5 +99,22 @@ describe("the parts briefing", () => {
     expect(gradeBriefing({ 0: [1, 0], 1: [1], 2: [0], 3: [1], 4: [1] }, cards).zone).toBe("solid");
     expect(gradeBriefing({ 0: [1, 0], 1: [0, 1], 2: [1, 0], 3: [1], 4: [1] }, cards).zone).toBe("risky");
     expect(gradeBriefing({ 0: [0], 1: [1] }, cards).zone).toBe("failing");
+  });
+});
+
+describe("quizzes and trade-offs", () => {
+  const qs = [0, 1, 2, 0, 1].map((answer) => ({ q: "q", answer, why: "w" }));
+  it("grade a quiz by the share right", () => {
+    expect(gradeQuiz([0, 1, 2, 0, 1], qs).zone).toBe("optimal");
+    expect(gradeQuiz([0, 1, 2, 0, 0], qs).zone).toBe("solid");
+    expect(gradeQuiz([0, 1, 2, 1, 0], qs).zone).toBe("risky");
+    expect(gradeQuiz([1, 1, 0, 1, 0], qs).zone).toBe("failing");
+  });
+  const ex = { answer: 0, why: "w", reasons: [{ text: "a", right: true }, { text: "b", right: true }, { text: "c", right: false }] };
+  it("grade a trade-off by the call, then the reasons", () => {
+    expect(gradeTradeoff(1, [0, 1], ex).zone).toBe("failing");
+    expect(gradeTradeoff(0, [0, 1], ex).zone).toBe("optimal");
+    expect(gradeTradeoff(0, [0], ex).zone).toBe("solid");
+    expect(gradeTradeoff(0, [0, 1, 2], ex).zone).toBe("risky");
   });
 });

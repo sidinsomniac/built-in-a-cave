@@ -1,0 +1,30 @@
+id: p1-r1
+phase: 1
+order: 6
+number: R1
+kind: revision
+title: "Briefing Room I: The Timeline"
+location: Pepper, on the phone to the vault
+concepts: [clients and servers, packets and ports, DNS, TCP, TLS]
+exercises: [r1, r2, r3]
+scene:
+  - who: pepper
+    line: Everyone's on the line? Good. I want the whole story, in order, from the moment a visitor taps the app.
+  - who: happy
+    line: Before anyone says anything - I only restarted the router. I swear. I have a receipt for that too.
+  - who: tony
+    line: Nobody asked for receipts, Happy.
+  - who: pepper
+    line: I did. Build me the timeline, and show me exactly where it broke.
+clue: The DNS change and the disabled certificate renewal **came from the same login** - a contractor's.
+outro:
+  - who: jarvis
+    line: Happy is cleared - a router restart can't edit DNS records or switch off renewal jobs.
+  - who: happy
+    line: Thank you. I'd like that in writing.
+  - who: jarvis
+    line: Both changes came from one login, ma'am. A contractor account, created three weeks ago.
+  - who: tony
+    line: Whose contractor?
+  - who: pepper
+    line: (a long pause) Hammer's.

@@ -80,7 +80,39 @@ export interface EstimateExercise extends ExerciseBase {
   ask: Ask[];
 }
 
-export type Exercise = CodeExercise | SequenceExercise | PredictExercise | EstimateExercise;
+/** Several quick scenario questions, e.g. "which machine does the work?" five times. */
+export interface QuizExercise extends ExerciseBase {
+  type: "quiz";
+  questions: { q: string; options: string[]; answer: number; why: string }[];
+}
+
+/** Pick an option AND the reasons that justify it. A right pick for wrong reasons isn't optimal. */
+export interface TradeoffExercise extends ExerciseBase {
+  type: "tradeoff";
+  options: string[];
+  answer: number;
+  reasons: { text: string; right: boolean }[];
+  why: string;
+}
+
+/** A small design-table simulation inside a lesson, usually with a guided build. */
+export interface DesignExercise extends ExerciseBase {
+  type: "design";
+  palette: NodeKind[];
+  prebuilt: Design;
+  scenarios: Scenario[];
+  targets: Targets;
+  rubric: { must: string[]; should: string[] };
+  rules: string[];
+  steps?: DesignStep[];
+  /** Shown after a pass, as one of many designs that pass. */
+  reference: Design;
+  /** A design that must fail (the validator checks). Defaults to the prebuilt one. */
+  naive?: Design;
+  settings?: Partial<Record<NodeKind, SettingSpec[]>>;
+}
+
+export type Exercise = CodeExercise | SequenceExercise | PredictExercise | EstimateExercise | QuizExercise | TradeoffExercise | DesignExercise;
 
 export type ReviewCard =
   | { id: string; type: "choice"; q: string; options: string[]; answer: number; why: string; covers?: string[] }

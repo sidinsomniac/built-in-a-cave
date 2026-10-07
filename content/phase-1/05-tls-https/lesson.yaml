@@ -1,0 +1,27 @@
+id: p1-l05
+phase: 1
+order: 5
+number: 5
+title: "TLS and HTTPS: The Padlock"
+location: The certificate locker
+concepts: [encryption, certificates, the certificate chain, the TLS handshake, certificate expiry]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: narrator
+    line: Every phone at the Expo now shows the same red warning - "Your connection is not private."
+  - who: tony
+    line: Rude.
+  - who: jarvis
+    line: Not rude, sir. That's a browser protecting people from an impostor.
+  - who: peter
+    line: How does my phone tell the real Expo from a fake one?
+  - who: jarvis
+    line: With a certificate - an ID card for websites, checked against authorities your phone already trusts.
+clue: The API's certificate **expired at midnight** - and the job that renews it had been **switched off**.
+outro:
+  - who: jarvis
+    line: The API certificate expired at midnight. The job that renews it every month was switched off last Tuesday.
+  - who: tony
+    line: Switched off. Not broken. Switched off.
+  - who: pepper
+    line: I'm calling a briefing. Everyone. Now.

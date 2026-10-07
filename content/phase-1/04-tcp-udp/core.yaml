@@ -1,0 +1,42 @@
+tier: core
+type: quiz
+title: Pick the Transport
+twist: trade-off - reliability against delay, and neither is always better
+covers: [TCP, UDP, reliability and ordering]
+task: |
+  Stark Industries is building six features. For each, pick the transport that fits.
+questions:
+  - q: A live video call between Tony and Pepper.
+    options: ["TCP", "UDP"]
+    answer: 1
+    why: A late video frame is worthless. Skipping a lost packet beats freezing the call to resend it.
+  - q: Downloading the 2 GB suit firmware update.
+    options: ["TCP", "UDP"]
+    answer: 0
+    why: Every byte must arrive, in order. A firmware file with a hole in it bricks the suit.
+  - q: A DNS lookup for expo.stark.com.
+    options: ["TCP", "UDP"]
+    answer: 1
+    why: One tiny question and one tiny answer. If it's lost, asking again is cheaper than a handshake.
+  - q: Sending drone positions in a multiplayer training game, 30 times a second.
+    options: ["TCP", "UDP"]
+    answer: 1
+    why: Only the latest position matters. Waiting for an old one to be resent makes the game lag.
+  - q: Loading the Expo schedule page in a browser.
+    options: ["TCP", "UDP"]
+    answer: 0
+    why: A web page must arrive complete and in order. (Newer HTTP/3 runs over UDP but rebuilds reliability on top - lesson 7.)
+  - q: Submitting a ticket payment.
+    options: ["TCP", "UDP"]
+    answer: 0
+    why: A payment must arrive exactly as sent. Losing part of it is never acceptable.
+hints:
+  nudge: For each feature, ask - if a piece arrives late, is it still useful?
+  question: Would you rather wait for the missing piece, or skip it and carry on?
+  pseudocode: |
+    every byte matters and order matters -> TCP
+    only the newest data matters, or it's one tiny question -> UDP
+  flaw: If you chose UDP for a download or a payment, imagine the file or the payment with a piece missing.
+  analogous: |
+    A live sports radio commentary vs. a recorded audiobook: if the radio crackles you
+    just keep listening; if the audiobook skips a sentence you rewind.

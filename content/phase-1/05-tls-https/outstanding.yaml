@@ -1,0 +1,37 @@
+tier: outstanding
+type: tradeoff
+title: Where Does the Padlock End?
+covers: [encryption, certificates]
+task: |
+  The rebuilt Expo will run **40 service copies** behind a load balancer, all inside Stark's
+  private network. The team is small, and tonight proved that certificates are easy to forget.
+
+  Encrypted connections from visitors must be decrypted somewhere. **Where should TLS end?**
+  Make the call, then tick every reason that genuinely supports it.
+options:
+  - At the load balancer - it decrypts, and talks to the services inside the private network
+  - At every service copy - the load balancer passes encrypted traffic straight through
+answer: 0
+reasons:
+  - { text: "There's one place to install and renew the certificate, instead of forty", right: true }
+  - { text: "The load balancer can read each request, so it can route by path (for example, /api to one group of services)", right: true }
+  - { text: "Decrypting costs processor time, and the service copies are spared it", right: true }
+  - { text: "Traffic behind the load balancer is encrypted twice, so it's safer", right: false }
+  - { text: "Browsers trust load balancers more than they trust services", right: false }
+  - { text: "It removes the TLS handshake's round trip for visitors", right: false }
+why: |
+  Ending TLS at the load balancer ("TLS termination") puts certificates in one place and lets it
+  route by what's in the request. The cost is that traffic inside the network travels as plain
+  text - fine for a trusted private network, and when it isn't trusted, teams re-encrypt from the
+  load balancer to the services.
+hints:
+  nudge: Think about tonight - which option makes a forgotten certificate least likely?
+  question: For each reason, is it actually true? And if it is, does it support the option you picked?
+  pseudocode: |
+    count the certificates each option needs
+    ask what the load balancer can do if it can read requests
+    check each reason for being false, or true-but-irrelevant
+  flaw: If you ticked "encrypted twice", trace where the traffic is decrypted - it isn't encrypted again unless you choose to.
+  analogous: |
+    An office building: a security desk at the front door checks every badge once, instead of
+    a guard at each of forty office doors. Inside, people move freely - fine in a trusted building.

@@ -1,0 +1,106 @@
+tier: outstanding
+type: design
+title: Your First Server
+twist: scale - the first server works, then the Expo opens its doors
+covers: [clients, servers, databases, requests and responses]
+task: |
+  Build the Expo's ticket system on the design table: visitors' phones talk to a
+  server, which keeps tickets in a database. Then make it survive opening hour.
+  Follow JARVIS's build plan above the table.
+palette: [service, sqldb]
+prebuilt:
+  nodes:
+    - { id: clients, kind: client, label: Visitors' phones, settings: {}, x: 40, y: 160 }
+  edges: []
+scenarios:
+  - id: quiet
+    label: A quiet morning
+    duration: 30
+    workingSetGb: 1
+    classes:
+      - { id: view, label: View tickets, op: read, rps: 40 }
+      - { id: buy, label: Buy a ticket, op: write, rps: 4 }
+  - id: opening
+    label: The Expo opens its doors
+    duration: 30
+    workingSetGb: 1
+    classes:
+      - { id: view, label: View tickets, op: read, rps: 2700 }
+      - { id: buy, label: Buy a ticket, op: write, rps: 300 }
+targets:
+  p99_ms: { view: 200, buy: 400 }
+  error_rate: 0.001
+  cost_per_month: 2500
+rubric: { must: [], should: [] }
+rules: [no_datastore]
+steps:
+  - id: server
+    title: A server
+    goal: Add a server (the "Service" part) and wire the visitors' phones to it.
+    teach: |
+      On the design table, the **Service** is a server running your code. It answers requests.
+
+      Add one from the palette on the right, then wire **Visitors' phones → Service**: drag from the
+      right edge of the phones' box to the service, or select the phones and use **Connect to**.
+    done: [{ has: service, from: client }]
+    hint: The Service button is in the "Add a component" palette.
+  - id: database
+    title: Somewhere to keep tickets
+    goal: Give the server a database, and wire the server to it.
+    teach: |
+      A server forgets everything when it restarts. Tickets must live in a **database**.
+
+      Add an **SQL database** and wire **Service → SQL database**. Tap ⓘ next to it in the palette
+      to read its Field Manual page.
+    ask:
+      q: A visitor buys a ticket, then the server restarts for an update. Where must the purchase be saved so it isn't lost?
+      options:
+        - In the server's memory
+        - In a database, on disk
+        - Only on the visitor's phone
+      answer: 1
+      why: Memory is wiped by a restart, and the phone can be lost or tampered with. A database keeps it safe on disk.
+    done: [{ clear: no_datastore }]
+    hint: Add the SQL database, then connect the service to it.
+  - id: watch
+    title: Watch it work
+    goal: Run the simulation, and watch requests travel along the wires.
+    teach: |
+      Press **Run the simulation**. Glowing packets travel along each wire, and every box shows a
+      **load bar**: how busy it was at its worst moment, as "asked for / can do".
+    done: [{ ran: true }]
+    hint: The Run the simulation button is under the table.
+  - id: opening
+    title: Opening hour
+    goal: Survive the Expo's opening - 3,000 requests a second - with no part over 100% busy.
+    teach: |
+      One server copy answers about **1,000 requests a second**. At opening hour, 3,000 arrive every second.
+
+      You don't need a bigger computer - you can run **several copies** of the same server. Select the
+      service and raise its **Replicas**. (In real systems, a load balancer spreads requests across the
+      copies - you'll meet it soon.)
+    ask:
+      q: 3,000 requests a second arrive, and each copy handles about 1,000. How many copies, at the very least?
+      number: 3
+      unit: copies
+      why: 3,000 ÷ 1,000 = 3. Run it and read the load bar - a little headroom keeps things fast.
+    done: [{ survives: opening, kinds: [service] }]
+    hint: Select the service and raise Replicas, then run again.
+reference:
+  nodes:
+    - { id: clients, kind: client, label: Visitors' phones, settings: {}, x: 40, y: 160 }
+    - { id: service, kind: service, label: Ticket server, settings: { replicas: 4 }, x: 280, y: 160 }
+    - { id: sqldb, kind: sqldb, label: Ticket database, settings: {}, x: 520, y: 160 }
+  edges:
+    - { from: clients, to: service }
+    - { from: service, to: sqldb }
+hints:
+  nudge: The build plan above the table walks you through it, one part at a time.
+  question: When opening hour arrives, which box's load bar goes red first - and what does its readout say it can do?
+  pseudocode: |
+    phones -> service -> database
+    copies needed = requests per second / what one copy can do, plus a little spare
+  flaw: If everything fails, check the wires go phones → service → database. If only opening hour fails, read the service's load bar.
+  analogous: |
+    One cashier serves about 60 customers an hour. When 200 arrive an hour,
+    you open more tills - the same cashier job, more people doing it.

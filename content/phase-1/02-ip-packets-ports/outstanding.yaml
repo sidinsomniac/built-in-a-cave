@@ -1,0 +1,24 @@
+tier: outstanding
+type: estimate
+title: How Many Envelopes?
+covers: [packets]
+task: |
+  The Expo's hero image is **1 MB**. Estimate how many packets it takes - and how
+  many must be sent twice on a weak phone signal.
+given:
+  - 1 MB is 1,000,000 bytes
+  - Each packet carries about 1,460 bytes of data (the rest of its 1,500 bytes is addresses and labels)
+  - On a weak signal, about 2% of packets are lost and must be sent again
+ask:
+  - { id: packets, label: "Packets for the 1 MB image", unit: "packets", answer: 685 }
+  - { id: resent, label: "Packets resent on the weak signal", unit: "packets", answer: 14 }
+hints:
+  nudge: First the size of the image divided by what one packet carries. Then a percentage of that.
+  question: How many bytes of the image fit in one packet? And what is 2% of your first answer?
+  pseudocode: |
+    packets = image bytes / data bytes per packet
+    resent = packets x 2 / 100
+  flaw: If you divided by 1,500, you counted the labels as data - close, but each packet carries a little less.
+  analogous: |
+    Moving 1,000 books in boxes of 25: 1,000 / 25 = 40 boxes. If 5% of boxes fall off
+    the truck, 2 boxes must be sent again.

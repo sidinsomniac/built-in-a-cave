@@ -1,0 +1,27 @@
+id: p1-l01
+phase: 1
+order: 1
+number: 1
+title: "Clients and Servers"
+location: The vault terminal
+concepts: [clients, servers, requests and responses, databases, where the work happens]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: tony
+    line: Half the planet is staring at a blank Expo app. Is it their phones? Our servers? The internet itself?
+  - who: happy
+    line: I can bring a phone down to the vault. I have... eleven phones.
+  - who: jarvis
+    line: Before we blame anything, let's learn what a phone and a server actually say to each other.
+  - who: tony
+    line: The phone says "give me the app". The server says "here's the app". Next question.
+  - who: jarvis
+    line: Close, sir. The details are where tonight's problem is hiding.
+clue: The phones send perfectly good requests - but **none of them reach the Expo servers**.
+outro:
+  - who: jarvis
+    line: The phones are fine, sir. They send perfectly good requests. Not one of them reaches our servers.
+  - who: tony
+    line: So they're going somewhere else.
+  - who: happy
+    line: (quietly) ...I did restart the internet box. Just the once. Twice.

@@ -109,6 +109,53 @@ test("a code mission runs in the sandbox: the starter fails with a question, a r
   await expect(page.getByTestId("test-results")).toContainText("0 of 5 tests passed");
 });
 
+test("new formats: a quiz, a guided design table inside a lesson, and a trade-off", async ({ page }) => {
+  await autoSkipScenes(page);
+
+  // A quiz: answer all, with one wrong, then fix it.
+  await page.goto("/#/lesson/p1-l01");
+  await page.getByTestId("tab-core").click();
+  const answers = [0, 1, 1, 2, 0, 1];
+  for (const [i, a] of answers.entries()) await page.getByTestId(`quiz-${i}-${i === 3 ? 0 : a}`).click();
+  await page.getByTestId("check").click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "solid");
+  await page.getByTestId("quiz-3-2").click();
+  await page.getByTestId("check").click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
+
+  // The ⭐: a guided design table in a lesson.
+  await page.getByTestId("tab-outstanding").click();
+  await expect(page.getByTestId("step-server")).toHaveAttribute("data-state", "now");
+  await page.getByTestId("add-service").click();
+  await connect(page, "clients", "🧩 Service");
+  await expect(page.getByTestId("step-database")).toHaveAttribute("data-state", "now");
+  await page.getByTestId("step-option-1").click();
+  await page.getByTestId("add-sqldb").click();
+  await connect(page, "service", "🛢️ SQL database");
+  await expect(page.getByTestId("step-watch")).toHaveAttribute("data-state", "now");
+  await page.getByTestId("run-sim").click();
+  await expect(page.getByTestId("step-opening")).toHaveAttribute("data-state", "now");
+  await page.getByTestId("step-number").fill("3000 / 1000");
+  await page.getByTestId("step-check").click();
+  await selectNode(page, "service");
+  await (await inspector(page)).getByLabel("Replicas", { exact: true }).fill("4");
+  await expect(page.getByTestId("steps-complete")).toBeVisible();
+  await page.getByTestId("run-sim").click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
+
+  // A trade-off: the right call for a wrong reason is only risky.
+  await page.goto("/#/lesson/p1-l05");
+  await page.getByTestId("tab-outstanding").click();
+  await page.getByTestId("choice-0").click();
+  for (const r of [0, 1, 2, 3]) await page.getByTestId(`reason-${r}`).check();
+  await page.getByTestId("check").click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "risky");
+  await expect(page.getByTestId("audit")).toContainText("Not a real reason");
+  await page.getByTestId("reason-3").uncheck();
+  await page.getByTestId("check").click();
+  await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
+});
+
 async function inspector(page: Page) {
   return page.getByTestId("inspector");
 }

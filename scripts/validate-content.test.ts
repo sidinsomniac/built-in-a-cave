@@ -13,14 +13,14 @@ import { describe, expect, it } from "vitest";
 import { auditDesign } from "../src/engine/audit";
 import { CASES, CAST, LESSONS, MANUAL, PHASES } from "../src/engine/content";
 import { undefinedAcronyms } from "../src/engine/glossary";
-import { checkStep } from "../src/engine/steps";
-import { gradeAssembly, gradeBriefing, gradeDesk, gradeEstimates, gradeInterrogation } from "../src/engine/stations";
+import { checkStep, type DesignStep } from "../src/engine/steps";
+import { gradeAssembly, gradeBriefing, gradeDesk, gradeEstimates, gradeInterrogation, gradeQuiz, gradeTradeoff } from "../src/engine/stations";
 import type { CodeExercise, CodeStation, Lesson, SceneLine } from "../src/engine/types";
 import { runMission } from "../src/runtime/harness";
 import { CAPACITY, COMPONENTS } from "../src/sim/components";
 import { CHECKERS, RULES } from "../src/sim/rules";
 import type { NodeKind } from "../src/sim/types";
-import type { Scenario } from "../src/sim/types";
+import type { Design, Scenario } from "../src/sim/types";
 
 const ROOT = join(import.meta.dirname, "..", "content");
 
@@ -121,6 +121,34 @@ async function proveCode(ex: Pick<CodeExercise, "files" | "entry" | "tests" | "m
   expectNoLeaks(ex.hints, solution, Object.values(ex.files).join("\n"));
 }
 
+/**
+ * A design exercise or station: real rubric and rule ids; the reference lands 🟢, the
+ * naive design 🔴; every guided step is reachable by the reference and not already
+ * done by the starting design.
+ */
+function proveDesign(spec: { scenarios: Scenario[]; targets: Parameters<typeof auditDesign>[1]["targets"]; rubric: { must: string[]; should: string[] }; rules: string[]; steps?: DesignStep[] }, reference: Design, naive: Design, start: Design) {
+  for (const id of [...spec.rubric.must, ...spec.rubric.should]) expect(CHECKERS[id], `unknown rubric checker ${id}`).toBeTruthy();
+  for (const id of spec.rules) expect(RULES[id], `unknown rule ${id}`).toBeTruthy();
+  const ref = auditDesign(reference, spec);
+  expect(ref.zone, `the reference design must be optimal: ${ref.items.filter((i) => i.status !== "covered").map((i) => i.title).join("; ")}`).toBe("optimal");
+  expect(auditDesign(naive, spec).zone, "the naive design must fail").toBe("failing");
+  const ctx = { scenarios: spec.scenarios, ran: true };
+  for (const step of spec.steps ?? []) {
+    for (const check of step.done) {
+      if ("clear" in check) expect(RULES[check.clear], `${step.id}: unknown rule ${check.clear}`).toBeTruthy();
+      if ("rubric" in check) expect(CHECKERS[check.rubric], `${step.id}: unknown checker ${check.rubric}`).toBeTruthy();
+      if ("survives" in check) expect(spec.scenarios.map((x) => x.id), `${step.id}: unknown scenario ${check.survives}`).toContain(check.survives);
+      if ("has" in check) expect(COMPONENTS[check.has], `${step.id}: unknown kind ${check.has}`).toBeTruthy();
+    }
+    if (step.ask && "options" in step.ask) expect(step.ask.answer >= 0 && step.ask.answer < step.ask.options.length, `${step.id}: answer out of range`).toBe(true);
+    if (step.ask && "number" in step.ask) expect(step.ask.number, `${step.id}: a numeric ask needs a positive answer`).toBeGreaterThan(0);
+    expect(step.goal && step.teach && step.hint, `${step.id}: needs goal, teach and hint`).toBeTruthy();
+    expectPlainJargon(`step ${step.id}`, `${step.goal}\n${step.teach}`);
+    expect(checkStep(step, reference, ctx).every(Boolean), `the reference design must pass step ${step.id}`).toBe(true);
+  }
+  if (spec.steps?.length) expect(spec.steps.some((step) => !checkStep(step, start, ctx).every(Boolean)), "the starting design must not already finish the guided build").toBe(true);
+}
+
 const lectureCode = (lesson: Lesson) => [...lesson.lecture.matchAll(/^```(?:ts|tsx|js|jsx)\n([\s\S]*?)^```\s*$/gm)].map((m) => m[1]);
 
 describe("lessons", () => {
@@ -189,6 +217,22 @@ describe("lessons", () => {
           } else if (ex.type === "estimate") {
             expect(ex.ask.every((a) => a.answer > 0)).toBe(true);
             expect(gradeEstimates(Object.fromEntries(ex.ask.map((a) => [a.id, a.answer])), ex.ask).zone).toBe("optimal");
+          } else if (ex.type === "quiz") {
+            expect(ex.questions.length, "a quiz needs at least 3 questions").toBeGreaterThanOrEqual(3);
+            for (const q of ex.questions) {
+              expect(q.answer >= 0 && q.answer < q.options.length, `quiz "${q.q}": answer out of range`).toBe(true);
+              expect(q.why, `quiz "${q.q}": needs a why`).toBeTruthy();
+              expectPlainJargon(`quiz "${q.q}"`, `${q.q} ${q.options.join(" ")}`);
+            }
+            expect(gradeQuiz(ex.questions.map((q) => q.answer), ex.questions).zone).toBe("optimal");
+          } else if (ex.type === "tradeoff") {
+            expect(ex.answer >= 0 && ex.answer < ex.options.length, "answer out of range").toBe(true);
+            expect(ex.reasons.some((r) => r.right) && ex.reasons.some((r) => !r.right), "a trade-off needs right reasons and tempting wrong ones").toBe(true);
+            const right = ex.reasons.map((r, i) => (r.right ? i : -1)).filter((i) => i >= 0);
+            expect(gradeTradeoff(ex.answer, right, ex).zone).toBe("optimal");
+            expectPlainJargon("the trade-off", [...ex.options, ...ex.reasons.map((r) => r.text)].join(" "));
+          } else if (ex.type === "design") {
+            proveDesign(ex, ex.reference, ex.naive ?? ex.prebuilt, ex.prebuilt);
           }
         });
       }
@@ -241,33 +285,9 @@ describe("cases", () => {
             case "estimate":
               expect(gradeEstimates(Object.fromEntries(st.ask.map((a) => [a.id, a.answer])), st.ask).zone).toBe("optimal");
               break;
-            case "design": {
-              for (const id of [...st.rubric.must, ...st.rubric.should]) expect(CHECKERS[id], `unknown rubric checker ${id}`).toBeTruthy();
-              for (const id of st.rules) expect(RULES[id], `unknown rule ${id}`).toBeTruthy();
-              const spec = { scenarios: st.scenarios.map(scenarioById), targets: st.targets, rubric: st.rubric, rules: st.rules };
-              const ref = auditDesign(c.reference, spec);
-              expect(ref.zone, `the reference design must be optimal: ${ref.items.filter((i) => i.status !== "covered").map((i) => i.title).join("; ")}`).toBe("optimal");
-              expect(auditDesign(c.naive, spec).zone, "the naive design must fail").toBe("failing");
-              // The guided build: every check is real, every question answerable, and the
-              // reference design passes every step, while the starting design doesn't.
-              const ctx = { scenarios: spec.scenarios, ran: true };
-              for (const step of st.steps ?? []) {
-                for (const check of step.done) {
-                  if ("clear" in check) expect(RULES[check.clear], `${step.id}: unknown rule ${check.clear}`).toBeTruthy();
-                  if ("rubric" in check) expect(CHECKERS[check.rubric], `${step.id}: unknown checker ${check.rubric}`).toBeTruthy();
-                  if ("survives" in check) expect(st.scenarios, `${step.id}: unknown scenario ${check.survives}`).toContain(check.survives);
-                  if ("has" in check) expect(COMPONENTS[check.has], `${step.id}: unknown kind ${check.has}`).toBeTruthy();
-                }
-                if (step.ask && "options" in step.ask) expect(step.ask.answer >= 0 && step.ask.answer < step.ask.options.length, `${step.id}: answer out of range`).toBe(true);
-                if (step.ask && "number" in step.ask) expect(step.ask.number, `${step.id}: a numeric ask needs a positive answer`).toBeGreaterThan(0);
-                expect(step.goal && step.teach && step.hint, `${step.id}: needs goal, teach and hint`).toBeTruthy();
-                expect(checkStep(step, c.reference, ctx).every(Boolean), `the reference design must pass step ${step.id}`).toBe(true);
-              }
-              if (st.steps?.length) {
-                expect(st.steps.some((step) => !checkStep(step, st.prebuilt, ctx).every(Boolean)), "the starting design must not already finish the guided build").toBe(true);
-              }
+            case "design":
+              proveDesign({ ...st, scenarios: st.scenarios.map(scenarioById) }, c.reference, c.naive, st.prebuilt);
               break;
-            }
             case "curveballs": {
               const spec = { scenarios: st.scenarios, targets: st.targets, rubric: { must: [], should: [] }, rules: [] };
               expect(auditDesign(c.reference, spec).zone, "the reference design must survive every curveball").toBe("optimal");

@@ -168,8 +168,10 @@ rules: [global_state_for_server_data, unvirtualised_list, images_without_dimensi
 | `predict` | `scenario` (code, a diagram or text), `options` or a free `answer` (one line), `why` | exact |
 | `estimate` | `given` (facts), `ask` (quantities with units), `answer`, `zones` (for example `green: 2x, yellow: 10x`) | ratio to the reference |
 | `desk` | `kind` (schema, state or api), `required` (checker ids), `rules` | the checkers |
+| `quiz` | `questions` (each `q`, `options`, `answer`, `why`), at least 3 | share right: all 🟢, 80% 🔵, 60% 🟡 |
+| `design` (in a lesson) | the same fields as a case design station (`palette`, `prebuilt`, `scenarios` inline, `targets`, `rubric`, `rules`, `steps`), plus `reference` and an optional `naive` | the simulation and audit, as in a case |
 | `interrogate` | `pool` (questions, each with `reveals` and `cost` in minutes), `budget`, `must_reveal` | coverage of `must_reveal` within the budget |
-| `tradeoff` | `options`, `reasons` (with correct and incorrect sets), `answer` | the choice and the reasons (a right choice for the wrong reason is 🟡) |
+| `tradeoff` | `options`, `answer`, `reasons` (each `{ text, right }`, with at least one tempting wrong reason), `why` | wrong call 🔴; a wrong reason ticked 🟡; a right reason missed 🔵; exact 🟢 |
 | `assemble` | `sections` (the RADIO sections), `chips` (with `belongs` and `decoy` flags) | must-have chips placed, minus decoys |
 | `incident` | `scenario` (a live sim), `actions` (with effects), `goal` (recover within N simulated minutes) | time to recover, side effects, ordering |
 | `flaw` | `design` (a graph, or code), `planted` (the flaws with locations) | flags matched (missed critical = 🔴) |

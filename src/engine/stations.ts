@@ -252,3 +252,47 @@ export function gradeBriefing(picks: Record<number, number[]>, cards: { answer: 
   });
   return { zone, items };
 }
+
+/** A quiz: every question right is optimal; 80% solid; 60% risky; less fails. */
+export function gradeQuiz(picks: (number | undefined)[], questions: { q: string; answer: number; why: string }[]): Graded {
+  const right = questions.filter((q, i) => picks[i] === q.answer).length;
+  const share = questions.length ? right / questions.length : 0;
+  const zone = share === 1 ? "optimal" : share >= 0.8 ? "solid" : share >= 0.6 ? "risky" : "failing";
+  const items: AuditItem[] = questions.map((q, i) => ({
+    status: picks[i] === q.answer ? "covered" : "missing",
+    stone: "mind",
+    title: q.q,
+    question: "Picture the scenario step by step. Which part is doing the work at that moment?",
+    why: q.why,
+  }));
+  return { zone, items };
+}
+
+/**
+ * A trade-off: the wrong option fails. The right option with exactly the right
+ * reasons is optimal; with some right reasons missing, solid; with any wrong
+ * reason ticked, risky - a right call for the wrong reason.
+ */
+export function gradeTradeoff(choice: number | null, reasons: number[], ex: { answer: number; reasons: { text: string; right: boolean }[]; why: string }): Graded {
+  const rightReasons = ex.reasons.map((r, i) => (r.right ? i : -1)).filter((i) => i >= 0);
+  const wrongPicked = reasons.filter((i) => !ex.reasons[i]?.right);
+  const missed = rightReasons.filter((i) => !reasons.includes(i));
+  const zone = choice !== ex.answer ? "failing" : wrongPicked.length ? "risky" : missed.length ? "solid" : "optimal";
+  const items: AuditItem[] = [
+    {
+      status: choice === ex.answer ? "covered" : "missing",
+      stone: "reality",
+      title: choice === ex.answer ? "The right call" : "Not the call that fits this situation",
+      question: "Which constraint in the situation matters most? Which option serves it?",
+      why: ex.why,
+    },
+    ...ex.reasons.map((r, i): AuditItem => ({
+      status: r.right ? (reasons.includes(i) ? "covered" : "partial") : reasons.includes(i) ? "anti" : "covered",
+      stone: "mind",
+      title: r.right ? (reasons.includes(i) ? `Reason: ${r.text}` : `A reason you missed: ${r.text}`) : reasons.includes(i) ? `Not a real reason: ${r.text}` : `Rightly left out: ${r.text}`,
+      question: r.right ? "Is there another reason this option wins here?" : "Is this statement actually true - and does it decide anything here?",
+      why: "",
+    })),
+  ];
+  return { zone, items };
+}

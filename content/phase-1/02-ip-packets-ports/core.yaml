@@ -1,0 +1,54 @@
+tier: core
+type: quiz
+title: When the Plumbing Misbehaves
+twist: edge cases - lost packets, packets out of order, and two programs on one machine
+covers: [packets, ports, localhost, routing]
+task: |
+  Real networks are messy. For each situation, pick what actually happens.
+questions:
+  - q: A request is cut into 10 packets. Packet 7 is dropped by a busy router.
+    options:
+      - The page loads with a gap in it
+      - The gap is noticed, and packet 7 is sent again
+      - The whole request is lost for good
+    answer: 1
+    why: The receiving side notices the missing piece and asks for it again (that's TCP's job, lesson 4). Only the lost packet travels twice.
+  - q: Packets 3 and 4 take different routes, and 4 arrives before 3.
+    options:
+      - The message is put back in order before the program sees it
+      - The program receives the pieces jumbled
+      - Packet 4 is thrown away
+    answer: 0
+    why: Packets carry sequence numbers, so the receiving side reassembles them in order.
+  - q: A server runs a web server on port 443 and a database on port 5432. A packet arrives for port 5432.
+    options:
+      - The web server gets it, because it's busier
+      - The database gets it
+      - It's rejected - one machine can only run one program
+    answer: 1
+    why: The port picks the program. One address, many doors.
+  - q: On your laptop you open http://localhost:3000.
+    options:
+      - The request goes out to the internet and back
+      - The request never leaves your laptop
+      - It reaches the Expo server
+    answer: 1
+    why: localhost means "this machine". The request goes straight to whatever program is listening on port 3000 on your laptop.
+  - q: A router in the middle of the internet receives a packet. What does it read to decide where to send it?
+    options:
+      - The destination address
+      - The web page inside the packet
+      - The user's name
+    answer: 0
+    why: Routers only need the destination address. They don't need - and usually can't read - the contents.
+hints:
+  nudge: Each question is about a different layer of the plumbing - the envelope, the address, or the door number.
+  question: What information does each packet carry, apart from its piece of data?
+  pseudocode: |
+    lost or jumbled packets: the receiving side repairs it
+    which program: the port
+    which machine: the address (localhost = this one)
+  flaw: If you think a lost packet ruins the page, remember why messages are cut into packets in the first place.
+  analogous: |
+    A 10-volume encyclopaedia sent as 10 parcels: if volume 7 goes missing, you ask
+    for volume 7 again. If 4 arrives before 3, you shelve them in number order.

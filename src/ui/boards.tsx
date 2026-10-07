@@ -3,7 +3,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
 import { useMemo, useState } from "react";
 import type { AuditItem } from "../engine/audit";
-import { calculate, gradeEstimates, type Ask } from "../engine/stations";
+import { calculate, gradeEstimates, gradeQuiz, gradeTradeoff, type Ask } from "../engine/stations";
 import { sequenceZone, type Zone } from "../engine/zones";
 import type { Mission, RunResult } from "../runtime/harness";
 import { runInSandbox } from "../runtime/sandboxClient";
@@ -206,6 +206,78 @@ export function PredictBoard({ options, answer, why, onResult }: { options: stri
         }
       >
         Lock in my prediction
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Quiz: several quick scenarios
+// ---------------------------------------------------------------------------
+
+export function QuizBoard({ questions, onResult }: { questions: { q: string; options: string[]; answer: number; why: string }[]; onResult: (zone: Zone, items: AuditItem[]) => void }) {
+  const [picks, setPicks] = useState<(number | undefined)[]>([]);
+  const answered = questions.every((_, i) => picks[i] !== undefined);
+  return (
+    <div className="stack" data-testid="quiz">
+      {questions.map((q, i) => (
+        <div key={i} className="quiz-q">
+          <div>
+            <b className="muted">{i + 1}.</b> {q.q}
+          </div>
+          <div className="row" style={{ marginTop: 6 }}>
+            {q.options.map((o, k) => (
+              <button key={k} className={`btn small option ${picks[i] === k ? "selected" : ""}`} onClick={() => setPicks((p) => Object.assign([...p], { [i]: k }))} data-testid={`quiz-${i}-${k}`}>
+                {o}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button className="btn primary" disabled={!answered} data-testid="check" onClick={() => {
+        const g = gradeQuiz(picks, questions);
+        onResult(g.zone, g.items);
+      }}>
+        {answered ? "Lock in my answers" : `Answer all ${questions.length} to check`}
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Trade-off: the call, and the reasons for it
+// ---------------------------------------------------------------------------
+
+export function TradeoffBoard({ ex, onResult }: { ex: { options: string[]; answer: number; reasons: { text: string; right: boolean }[]; why: string }; onResult: (zone: Zone, items: AuditItem[]) => void }) {
+  const [choice, setChoice] = useState<number | null>(null);
+  const [reasons, setReasons] = useState<number[]>([]);
+  return (
+    <div className="stack" data-testid="tradeoff">
+      <div>
+        <b>1. Make the call</b>
+        <div className="options" style={{ marginTop: 6 }}>
+          {ex.options.map((o, i) => (
+            <button key={i} className={`btn option ${choice === i ? "selected" : ""}`} onClick={() => setChoice(i)} data-testid={`choice-${i}`}>
+              {o}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <b>2. Tick every reason that supports it</b> <span className="muted small">(some of these are true but irrelevant, or simply false)</span>
+        <div className="stack" style={{ marginTop: 6 }}>
+          {ex.reasons.map((r, i) => (
+            <label key={i} className="reason">
+              <input type="checkbox" checked={reasons.includes(i)} onChange={(e) => setReasons(e.target.checked ? [...reasons, i] : reasons.filter((x) => x !== i))} data-testid={`reason-${i}`} /> {r.text}
+            </label>
+          ))}
+        </div>
+      </div>
+      <button className="btn primary" disabled={choice === null || reasons.length === 0} data-testid="check" onClick={() => {
+        const g = gradeTradeoff(choice, reasons, ex);
+        onResult(g.zone, g.items);
+      }}>
+        Make the call
       </button>
     </div>
   );

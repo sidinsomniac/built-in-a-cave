@@ -1,0 +1,34 @@
+tier: review
+type: quiz
+title: What Breaks?
+task: |
+  Pepper reads out four failures from tonight's logs. For each, pick what visitors saw.
+questions:
+  - q: The DNS record for expo.stark.com was changed to an address Stark doesn't own.
+    options: ["Requests go to someone else's server", "A browser certificate warning", "The page loads slowly but works"]
+    answer: 0
+    why: DNS hands out the address. Change it, and every visitor goes exactly where they're told - to the wrong place.
+  - q: The certificate for api.stark.com expired at midnight.
+    options: ["Requests go to someone else's server", "A browser certificate warning", "Nothing - the site still works"]
+    answer: 1
+    why: Browsers refuse expired certificates, however correct everything else is.
+  - q: A firewall started silently dropping packets sent to port 443.
+    options: ["An instant error message", "The app spins, then gives up (a timeout)", "A browser certificate warning"]
+    answer: 1
+    why: Dropped packets get no reply at all, so the phone waits, retries, and eventually times out.
+  - q: The server machine is up, but the program that listens on port 443 has crashed.
+    options: ["\"Connection refused\", straight away", "The app spins for minutes", "A browser certificate warning"]
+    answer: 0
+    why: The machine itself replies that nothing is listening on that port - a fast, clear refusal.
+hints:
+  nudge: Each failure is in a different layer - the address, the encryption, the packets, or the program.
+  question: Does the phone get a reply at all? If so, what kind?
+  pseudocode: |
+    wrong address -> the wrong server answers
+    bad certificate -> the browser warns
+    dropped packets -> no reply, so a timeout
+    no program on the port -> an immediate refusal
+  flaw: If you mixed up "spins" and "refused", ask whether anything answers in each case.
+  analogous: |
+    Knocking on a door: nobody home and the bell's broken - you wait and wait (timeout).
+    Someone shouts "we're closed!" - you know at once (refused).

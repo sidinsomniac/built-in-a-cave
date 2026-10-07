@@ -4,7 +4,8 @@ import { lessonById } from "../engine/content";
 import { useGame } from "../engine/store";
 import { TIER_LABEL, type Exercise } from "../engine/types";
 import { passes, ZONES } from "../engine/zones";
-import { CodeBoard, EstimateBoard, OutcomePanel, PredictBoard, SequenceBoard, type Outcome } from "./boards";
+import { CodeBoard, EstimateBoard, OutcomePanel, PredictBoard, QuizBoard, SequenceBoard, TradeoffBoard, type Outcome } from "./boards";
+import { DesignBench } from "./DesignBench";
 import { Cutscene, HintLadder, Lecture, Markdown, SceneBeat } from "./common";
 
 function ExerciseView({ ex }: { ex: Exercise }) {
@@ -12,6 +13,8 @@ function ExerciseView({ ex }: { ex: Exercise }) {
   const recordExercise = useGame((s) => s.recordExercise);
   const draft = useGame((s) => s.drafts[ex.id]);
   const saveDraft = useGame((s) => s.saveDraft);
+  const bench = useGame((s) => s.benches[ex.id]);
+  const saveBench = useGame((s) => s.saveBench);
   const [hints, setHints] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [estimates, setEstimates] = useState<Record<string, string>>({});
@@ -45,7 +48,23 @@ function ExerciseView({ ex }: { ex: Exercise }) {
       {ex.type === "sequence" && <SequenceBoard id={ex.id} items={ex.items} onResult={report} />}
       {ex.type === "predict" && <PredictBoard options={ex.options} answer={ex.answer} why={ex.why} onResult={report} />}
       {ex.type === "estimate" && <EstimateBoard given={ex.given} ask={ex.ask} values={estimates} onValues={setEstimates} onResult={report} />}
-      <OutcomePanel outcome={outcome} />
+      {ex.type === "quiz" && <QuizBoard questions={ex.questions} onResult={report} />}
+      {ex.type === "tradeoff" && <TradeoffBoard ex={ex} onResult={report} />}
+      {ex.type === "design" && (
+        <DesignBench
+          spec={ex}
+          start={ex.prebuilt}
+          extraSettings={ex.settings}
+          reference={ex.reference}
+          state={bench ?? {}}
+          save={(patch) => saveBench(ex.id, patch)}
+          mark={1}
+          passed={passes(record?.best ?? "failing")}
+          outcome={outcome}
+          onGraded={report}
+        />
+      )}
+      {ex.type !== "design" && <OutcomePanel outcome={outcome} />}
       <HintLadder hints={ex.hints} used={hints} onReveal={() => setHints(hints + 1)} cost="−3 XP" />
     </div>
   );
@@ -84,9 +103,11 @@ export function LessonView({ id }: { id: string }) {
             </button>
           );
         })}
-        <button className="tab" role="tab" aria-selected={tab === "notes"} onClick={() => setTab("notes")}>
-          🗒 Notes
-        </button>
+        {lesson.notes.trim() && (
+          <button className="tab" role="tab" aria-selected={tab === "notes"} onClick={() => setTab("notes")}>
+            🗒 Notes
+          </button>
+        )}
       </div>
       {tab === "lesson" && (
         <div className="card">

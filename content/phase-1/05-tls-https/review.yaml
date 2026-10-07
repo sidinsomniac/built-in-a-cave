@@ -1,0 +1,14 @@
+- id: two-jobs
+  type: choice
+  q: Which two problems does TLS solve?
+  options: ["Speed and caching", "Privacy (encryption) and identity (certificates)", "Routing and ports"]
+  answer: 1
+  why: TLS scrambles the traffic and proves the server is who it claims to be.
+  covers: [encryption, certificates]
+- id: expired
+  type: choice
+  q: A certificate expired an hour ago. Nothing else changed. What do visitors see?
+  options: ["The site, as normal", "A browser warning - the connection is refused", "A slower site"]
+  answer: 1
+  why: Browsers refuse expired certificates outright. Automate renewal.
+  covers: [certificate expiry]

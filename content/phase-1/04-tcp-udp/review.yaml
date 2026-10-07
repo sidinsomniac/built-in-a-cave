@@ -1,0 +1,14 @@
+- id: handshake
+  type: choice
+  q: How many round trips does a TCP handshake cost before the first request can be sent?
+  options: ["None", "One", "Three"]
+  answer: 1
+  why: SYN goes out, SYN-ACK comes back (one round trip); the ACK can travel with the request.
+  covers: [the three-way handshake, round trips]
+- id: udp-why
+  type: choice
+  q: Why would anyone choose UDP, which can lose data?
+  options: ["It's encrypted", "When late data is worthless, waiting for a resend only makes things worse", "It's required by browsers"]
+  answer: 1
+  why: Live audio, video and game positions prefer fresh data over complete data.
+  covers: [UDP, TCP]

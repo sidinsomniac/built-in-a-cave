@@ -105,3 +105,53 @@ working set:
 worker:
   def: A background process that takes jobs off a queue and does the slow work.
   match: [workers]
+ACK:
+  def: '"Acknowledged" - the message in a handshake that says "got it".'
+certificate:
+  def: A website's digital ID card, signed by an authority your browser already trusts. It proves the site is who it claims to be.
+  match: [certificates]
+certificate authority:
+  def: An organisation browsers trust to sign certificates, vouching that a website is who it says it is.
+  match: [certificate authorities, CA]
+database:
+  def: A program that stores data safely on disk and finds it again quickly when asked.
+  match: [databases]
+encryption:
+  def: Scrambling data so only someone with the right key can read it.
+  match: [encrypted, encrypt]
+handshake:
+  def: The few messages two machines exchange to agree on something - opening a connection, or setting up encryption - before real data flows.
+  match: [handshakes]
+HTTPS:
+  def: HTTP sent inside an encrypted TLS connection - the padlock in your address bar.
+localhost:
+  def: The name a machine uses for itself (address 127.0.0.1). A request to localhost never leaves your computer.
+packet:
+  def: A small envelope of data, with a "from" and a "to" address. Big messages are cut into many packets.
+  match: [packets]
+port:
+  def: A numbered door on a machine, so several programs can share one address. Web servers listen on 443 (HTTPS) and 80 (HTTP).
+  match: [ports]
+request:
+  def: A message from a client asking a server to do something - "send me the schedule", "buy this ticket".
+  match: [requests]
+response:
+  def: The server's reply to a request - the data asked for, or an error.
+  match: [responses]
+round trip:
+  def: The time for a message to go from one machine to another and for the reply to come back.
+  match: [round trips, round-trip]
+router:
+  def: A device that passes packets one step closer to their destination address.
+  match: [routers, routing]
+server:
+  def: A computer (usually in a data centre) running a program that waits for requests and answers them.
+  match: [servers]
+SYN:
+  def: '"Synchronise" - the first message of a connection handshake: "I would like to talk."'
+TCP:
+  def: Transmission Control Protocol - delivers data reliably and in order, resending anything lost. Most web traffic uses it.
+TLS:
+  def: Transport Layer Security - the layer that encrypts a connection and checks the server's certificate.
+UDP:
+  def: User Datagram Protocol - sends packets with no guarantees, no handshake and no resending. Fast, for when late data is useless anyway.

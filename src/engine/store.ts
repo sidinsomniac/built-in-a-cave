@@ -57,6 +57,8 @@ interface SaveData {
   cases: Record<string, CaseProgress>;
   scenesSeen: Record<string, true>;
   drafts: Record<string, Record<string, string>>;
+  /** Lesson design-table exercises: the player's design and guided-build progress, by exercise id. */
+  benches: Record<string, StationRecord>;
 }
 
 interface Actions {
@@ -66,12 +68,13 @@ interface Actions {
   completeCase: (caseId: string, mark: Mark, zone: Zone) => void;
   seeScene: (id: string) => void;
   saveDraft: (id: string, files: Record<string, string>) => void;
+  saveBench: (id: string, patch: Partial<StationRecord>) => void;
   reset: () => void;
 }
 
 export type GameState = SaveData & Actions;
 
-const initialData: SaveData = { name: "", xp: 0, exercises: {}, cases: {}, scenesSeen: {}, drafts: {} };
+const initialData: SaveData = { name: "", xp: 0, exercises: {}, cases: {}, scenesSeen: {}, drafts: {}, benches: {} };
 
 /** XP for a result: the zone sets the reward, hints shave a little off, never below 5. */
 export function xpFor(zone: Zone, hintsUsed: number, base = 40): number {
@@ -161,6 +164,7 @@ export const useGame = create<GameState>()(
       },
       seeScene: (id) => set((s) => ({ scenesSeen: { ...s.scenesSeen, [id]: true } })),
       saveDraft: (id, files) => set((s) => ({ drafts: { ...s.drafts, [id]: files } })),
+      saveBench: (id, patch) => set((s) => ({ benches: { ...s.benches, [id]: { ...(s.benches[id] ?? { attempts: 0, hintsUsed: 0 }), ...patch } } })),
       reset() {
         backupSave("reset");
         set({ ...initialData });
@@ -170,7 +174,7 @@ export const useGame = create<GameState>()(
       name: SAVE_KEY,
       version: SAVE_VERSION,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ name: s.name, xp: s.xp, exercises: s.exercises, cases: s.cases, scenesSeen: s.scenesSeen, drafts: s.drafts }),
+      partialize: (s) => ({ name: s.name, xp: s.xp, exercises: s.exercises, cases: s.cases, scenesSeen: s.scenesSeen, drafts: s.drafts, benches: s.benches }),
       migrate(persisted, version) {
         backupSave(`upgrade from v${version}`);
         return { ...initialData, ...(persisted as Partial<SaveData>) } as GameState;

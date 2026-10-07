@@ -1,0 +1,28 @@
+tier: outstanding
+type: estimate
+title: The Long Way to Sydney
+covers: [round trips, the three-way handshake]
+task: |
+  A visitor in Sydney opens the Expo site, served from London. Estimate how long until
+  the **first byte** of the page arrives - on a brand-new secure connection, and on a
+  connection the browser already has open.
+given:
+  - One round trip between Sydney and London takes about 280 ms
+  - A new TCP connection costs 1 round trip (the handshake) before anything else
+  - Setting up encryption (TLS, next lesson) costs 1 more round trip
+  - The request and the first byte of the response take 1 round trip
+  - Ignore the server's own thinking time
+ask:
+  - { id: fresh, label: "First byte on a brand-new connection", unit: "ms", answer: 840 }
+  - { id: reused, label: "First byte on a connection that's already open", unit: "ms", answer: 280 }
+hints:
+  nudge: Count the round trips first, then multiply.
+  question: Which of the three round trips are already paid for when the connection is open?
+  pseudocode: |
+    new connection: handshake + encryption + request = 3 round trips
+    reused connection: only the request = 1 round trip
+    time = round trips x 280 ms
+  flaw: If both answers are the same, you've charged the reused connection for a handshake it already did.
+  analogous: |
+    Visiting a friend across town: the first visit needs directions, a call to be let in,
+    then the chat. Next time you know the way and they leave the door open - just the chat.

@@ -1,0 +1,41 @@
+tier: core
+type: quiz
+title: Read the Certificate
+twist: debug - five certificate chains, some broken in different ways
+covers: [the certificate chain, certificates, certificate expiry]
+task: |
+  A phone visits `https://expo.stark.com`. For each certificate the server presents,
+  what does the browser do?
+questions:
+  - q: Certificate for expo.stark.com, signed by an intermediate, signed by a root the phone trusts. Valid until next year.
+    options: ["Connects normally", "Warns - the certificate is out of date", "Warns - this certificate can't be trusted for this site"]
+    answer: 0
+    why: The chain reaches a trusted root, the name matches, and it's in date. Padlock.
+  - q: The same chain - but the site certificate expired at midnight.
+    options: ["Connects normally", "Warns - the certificate is out of date", "Warns - this certificate can't be trusted for this site"]
+    answer: 1
+    why: Expiry alone is enough for a warning, even though everything else is fine. Tonight's exact problem.
+  - q: A valid, trusted certificate - for hammer-industries.com.
+    options: ["Connects normally", "Warns - the certificate is out of date", "Warns - this certificate can't be trusted for this site"]
+    answer: 2
+    why: The name must match the site you asked for. A real certificate for a different name proves nothing.
+  - q: A certificate for expo.stark.com signed by "Hammer Root Authority", which no device trusts.
+    options: ["Connects normally", "Warns - the certificate is out of date", "Warns - this certificate can't be trusted for this site"]
+    answer: 2
+    why: The chain must end at a root already in the device's trusted list. Anyone can sign their own.
+  - q: On café Wi-Fi, an attacker intercepts the connection and shows a home-made certificate for expo.stark.com.
+    options: ["Connects normally", "Warns - the certificate is out of date", "Warns - this certificate can't be trusted for this site"]
+    answer: 2
+    why: The attacker can't get a trusted authority to sign expo.stark.com for them, so the man in the middle is caught.
+hints:
+  nudge: The browser checks three things - the chain, the name and the date. Find which one fails, if any.
+  question: Does the chain end at a trusted root? Does the name match what was typed? Is it in date?
+  pseudocode: |
+    chain doesn't reach a trusted root -> can't be trusted
+    name doesn't match -> can't be trusted for this site
+    past its end date -> out of date
+    all fine -> padlock
+  flaw: If you said "connects" for the attacker, ask who signed their certificate - and whether your phone trusts them.
+  analogous: |
+    A passport check: is it issued by a country we recognise, is it really your name,
+    and has it expired? Fail any one and you don't board.

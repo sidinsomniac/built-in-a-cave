@@ -1,0 +1,14 @@
+- id: address-vs-port
+  type: choice
+  q: "In 203.0.113.7:443, what does the 443 pick?"
+  options: ["Which machine", "Which program on the machine", "Which country"]
+  answer: 1
+  why: The address picks the machine; the port picks the program on it.
+  covers: [ports, IP addresses]
+- id: why-packets
+  type: choice
+  q: Why are big messages cut into packets?
+  options: ["So a lost piece can be sent again on its own", "To make them secret", "Because routers can only count to 1,500"]
+  answer: 0
+  why: Small pieces travel easily, and only the lost ones need resending.
+  covers: [packets]

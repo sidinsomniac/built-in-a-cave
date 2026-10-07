@@ -78,6 +78,18 @@ Each alone was survivable. Together they took the app down worldwide. Hammer ins
 | R3 | The vault door | The final lock: the click-to-pixel timeline, in order. | The door opens. Daylight. |
 | 🏁 Trial | Stark Expo, relaunch | **Escape the Cave.** Find the failures, repair the client, estimate the load, wire the minimal system that survives the relaunch. | Hammer's contractor is caught. The Expo relaunches live, and holds. |
 
+### Phase 1 beats, lesson by lesson (written before the content)
+Each lesson's opening scene sets up the table above. Its mid-lesson beat and outro are:
+
+| Lesson | Mid-lesson beat (at a checkpoint) | Outro (pays off the clue, points onward) |
+|---|---|---|
+| 1 Clients and Servers | Happy: "So the phone sends a request... and if nothing comes back?" JARVIS: it never left, never arrived, or was never answered. | JARVIS: the phones send perfectly good requests, and **none reach our servers**. Tony: "So they're going somewhere else." Happy, quietly: "...I did restart the internet box." |
+| 2 IP, Packets, Ports | Tony: "Every packet carries a 'to' address. Whose address are ours carrying?" JARVIS: "Not ours, sir." | JARVIS: the packets go to **an address that isn't ours**. Tony: "Then something is handing out the wrong address." Peter: "Like a phone book with a typo?" JARVIS: "Like a phone book someone edited." |
+| 3 DNS | (built) | (built) |
+| 4 TCP and UDP | Tony: "Each new connection costs a round trip before anything useful?" JARVIS: "Before a single byte of the app, sir." | JARVIS: with DNS fixed, connections **complete, then fail at the very next step**: the secure part. Tony: "Of course it's the secure part." |
+| 5 TLS and HTTPS | Happy: "Certificates expire? Like milk?" JARVIS: "Like milk. And someone switched off the reminder to buy more." | JARVIS: the API certificate **expired at midnight**; its renewal job was **switched off**, not broken. Tony: "Switched off." Pepper: "Briefing. Everyone. Now." |
+| R1 Briefing Room I | Pepper lays out the timeline as the player rebuilds it. | Happy confesses he only restarted the router, and is cleared. JARVIS: **the DNS change and the disabled renewal job came from one login**: a contractor's. Tony: "Whose contractor?" Pepper: "Hammer's." |
+
 **Outro.** Tony walks out of the vault squinting, and declares the outage "a stress test I designed". Pepper doesn't let him finish. Rhodey hands you your first audit badge. JARVIS: "Shall I prepare the workshop, sir? I suspect the suits will need software."
 
 ---

@@ -280,6 +280,11 @@ label { display: block; }
 .step-body .goal { font-weight: 600; color: var(--accent-ink); }
 .step-ask { border-left: 2px solid var(--accent2); padding: 6px 0 6px 12px; margin: 10px 0; }
 
+/* quizzes and trade-offs */
+.quiz-q { border-left: 2px solid var(--line-strong); padding: 4px 0 4px 12px; }
+.reason { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); cursor: pointer; }
+.reason input { margin-top: 4px; }
+
 /* the parts briefing */
 .briefing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 @media (max-width: 560px) { .briefing-grid { grid-template-columns: 1fr; } }

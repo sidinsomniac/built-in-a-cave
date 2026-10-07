@@ -1,0 +1,25 @@
+tier: warmup
+type: sequence
+title: Setting Up the Secret
+covers: [the TLS handshake, encryption, certificates]
+task: |
+  The TCP connection to the Expo server is open. Put the TLS 1.3 handshake in order,
+  ending with the first encrypted request.
+items:
+  - The phone says hello, with its half of a shared secret
+  - The server says hello, with its half of the secret and its certificate
+  - The phone checks the certificate chain up to a root it trusts
+  - The phone sends its first request, encrypted with the shared key
+  - The server sends back the response, encrypted
+hints:
+  nudge: Nothing can be encrypted until both halves of the secret have been exchanged and the server is trusted.
+  question: When can the phone check the certificate - before or after the server has sent it?
+  pseudocode: |
+    phone: hello + its half
+    server: hello + its half + certificate
+    phone: check the certificate
+    then everything is encrypted
+  flaw: If the request comes before the certificate check, the phone could be sending secrets to an impostor.
+  analogous: |
+    Meeting a courier: they say hello, show their ID, you check it against the company's
+    list - and only then hand over the package.

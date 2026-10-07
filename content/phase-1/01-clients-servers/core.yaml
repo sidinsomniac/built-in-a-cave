@@ -1,0 +1,43 @@
+tier: core
+type: quiz
+title: Who Does the Work?
+twist: misconception - "the app does it" is often wrong, and sometimes the answer is both
+covers: [where the work happens, clients, servers]
+task: |
+  For each job, decide where it should happen in the Expo app.
+questions:
+  - q: Sorting the 20 tickets already on your screen by price.
+    options: ["The client (phone or browser)", "The server (with its database)", "Both"]
+    answer: 0
+    why: The data is already on the phone. Asking the server would only add a slow round trip.
+  - q: Checking that the password you typed is correct.
+    options: ["The client (phone or browser)", "The server (with its database)", "Both"]
+    answer: 1
+    why: The client must never hold everyone's passwords, and can be tampered with. Only the server can decide.
+  - q: Finding every Saturday ticket among 2 million.
+    options: ["The client (phone or browser)", "The server (with its database)", "Both"]
+    answer: 1
+    why: The phone doesn't have 2 million tickets, and shouldn't download them. The database finds them fast.
+  - q: Saying "that email looks wrong" while you type, and refusing a bad email when the form is sent.
+    options: ["The client (phone or browser)", "The server (with its database)", "Both"]
+    answer: 2
+    why: The client checks for speed and a nice experience. The server checks again, because the client can be bypassed.
+  - q: Making the "Buy" button glow when you tap it.
+    options: ["The client (phone or browser)", "The server (with its database)", "Both"]
+    answer: 0
+    why: Pure presentation, needing no data. A trip to the server would make the button feel slow.
+  - q: Charging the visitor's card for the ticket.
+    options: ["The client (phone or browser)", "The server (with its database)", "Both"]
+    answer: 1
+    why: Money must be handled where the user can't tamper with it - on the server, talking to the payment provider.
+hints:
+  nudge: For each job, ask two things - is the data already on the phone, and would it matter if the user cheated?
+  question: If a user edited the app to skip this step, would anyone lose money or see someone else's data?
+  pseudocode: |
+    instant and harmless, data already present -> client
+    secrets, money, or data the phone doesn't have -> server
+    checking user input -> client for speed AND server for safety
+  flaw: If you put a password check or a payment on the client, imagine the user editing the app.
+  analogous: |
+    A shop: you can tidy your own basket (client), but the till decides the price
+    and takes the payment (server) - and the door scanner double-checks what the till did.

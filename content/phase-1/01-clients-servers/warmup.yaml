@@ -1,0 +1,26 @@
+tier: warmup
+type: sequence
+title: One Tap, Traced
+covers: [requests and responses, clients, servers, databases]
+task: |
+  A visitor taps **"My tickets"** in the Expo app. Put the steps in the order they
+  happen, from the tap to the tickets appearing on screen.
+items:
+  - The visitor taps "My tickets"
+  - The app sends a request to the Expo server
+  - The server asks its database for this visitor's tickets
+  - The database returns the tickets to the server
+  - The server sends a response containing the tickets
+  - The app draws the tickets on screen
+hints:
+  nudge: Follow the question outwards from the phone, then follow the answer back.
+  question: Who has the tickets - the phone, the server or the database? Who has to ask whom?
+  pseudocode: |
+    the client asks the server
+    the server asks the database
+    the answer travels back the same way
+    the client shows it
+  flaw: If the database step comes before the request, ask how the database would know anyone wanted anything.
+  analogous: |
+    Ordering at a restaurant: you ask the waiter, the waiter asks the kitchen,
+    the kitchen hands the plate to the waiter, the waiter brings it to you.

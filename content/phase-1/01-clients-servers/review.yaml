@@ -1,0 +1,14 @@
+- id: who-answers
+  type: choice
+  q: What makes a computer a "server"?
+  options: ["Special hardware only data centres have", "It runs a program that listens for requests and answers them", "It has no screen"]
+  answer: 1
+  why: Any computer can be a server. It's the listening program that makes it one.
+  covers: [servers]
+- id: trust
+  type: choice
+  q: The app already checks that a ticket quantity is between 1 and 10. Should the server check too?
+  options: ["No - the app already checked", "Yes - the client can be modified or bypassed"]
+  answer: 1
+  why: The client is under the user's control. Anything that matters is checked on the server.
+  covers: [where the work happens]

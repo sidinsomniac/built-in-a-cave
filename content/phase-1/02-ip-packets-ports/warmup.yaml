@@ -1,0 +1,26 @@
+tier: warmup
+type: sequence
+title: Follow One Packet
+covers: [packets, routing, IP addresses, ports]
+task: |
+  A visitor's phone sends a request to the Expo server at `203.0.113.7`, port 443.
+  Put one packet's journey in order.
+items:
+  - The phone cuts the request into packets, each addressed to 203.0.113.7
+  - The packets go to the home Wi-Fi router
+  - The router passes them to the internet provider's network
+  - Routers across the internet pass them on, hop by hop, towards the address
+  - The packets reach the machine with address 203.0.113.7
+  - That machine hands them to the program listening on port 443
+hints:
+  nudge: Start where the packet is made, and end inside the server.
+  question: Which happens last - finding the right machine, or finding the right program on it?
+  pseudocode: |
+    make the packets
+    nearest router first, then further and further away
+    the right machine
+    the right program on that machine
+  flaw: If the port step comes before the packet reaches the machine, ask how a port could matter before you're at the building.
+  analogous: |
+    A letter: written, posted at the corner box, sorted locally, sorted nationally,
+    delivered to the building - and finally to the right flat number.

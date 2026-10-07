@@ -1,0 +1,25 @@
+tier: review
+type: estimate
+title: The Relaunch Latency Budget
+task: |
+  For the relaunch, Fury wants to know how fast the first visit can possibly be.
+  Estimate the time to the first byte of the page - for a first visit, and for a later visit.
+given:
+  - An uncached DNS lookup takes about 50 ms; a cached one takes about 0 ms
+  - One round trip to the Expo servers takes about 100 ms
+  - A new connection needs 1 round trip for TCP and 1 for TLS 1.3
+  - The request and response take 1 round trip, plus 20 ms of server work
+  - On a later visit, the DNS answer is cached and the connection is still open
+ask:
+  - { id: first, label: "First visit, to the first byte", unit: "ms", answer: 370 }
+  - { id: later, label: "Later visit, to the first byte", unit: "ms", answer: 120 }
+hints:
+  nudge: List every step of the first visit and add up its cost. Then cross out what a later visit gets for free.
+  question: Which steps does a cached DNS answer and an open connection skip?
+  pseudocode: |
+    first visit = DNS + TCP round trip + TLS round trip + request round trip + server time
+    later visit = request round trip + server time
+  flaw: If your first visit is under 300 ms, check you counted all three round trips.
+  analogous: |
+    First time at a new gym: find the address, register at the desk, get a locker key, then train.
+    Next time: walk straight in and train.

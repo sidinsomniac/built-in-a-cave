@@ -1,0 +1,25 @@
+id: p1-l04
+phase: 1
+order: 4
+number: 4
+title: "TCP and UDP: Handshakes"
+location: The fibre junction
+concepts: [TCP, UDP, the three-way handshake, reliability and ordering, round trips]
+exercises: [warmup, core, outstanding]
+scene:
+  - who: jarvis
+    line: DNS is fixed. Phones now find the right address. And yet...
+  - who: tony
+    line: And yet the app still spins. Why is it still spinning?
+  - who: jarvis
+    line: Connections are opening, sir. Then something stops them halfway.
+  - who: peter
+    line: Opening a connection... is that like a phone call? Ring, hello, hello back?
+  - who: jarvis
+    line: Remarkably like it, Mr Parker. It's called a handshake.
+clue: With DNS fixed, connections **complete - then fail at the very next step**, the secure part.
+outro:
+  - who: jarvis
+    line: The handshakes complete now, sir. Every one. Then the connection fails at the very next step - the secure part.
+  - who: tony
+    line: Of course it's the secure part. It's always the part with a padlock on it.

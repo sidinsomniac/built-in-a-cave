@@ -41,10 +41,10 @@ The core rules:
 | `npm install` | Install dependencies (Node 20+). |
 | `npm run dev` | Builds the sandbox runtime (`predev`), then starts Vite. |
 | `npm run build:sandbox` | Builds `public/sandbox/sandbox.js`, the classic-script test harness the sandbox iframe loads. It runs automatically before `dev` and `build`. The file is git-ignored. |
-| `npm test` | Vitest unit tests. **39** pass at the moment: the simulation, rules, zones, the station graders, the URL shortener calibration, the guided build (a beginner's step-by-step progression), load readouts, the reference comparison and the glossary linker and the briefing grader. |
-| `npm run validate-content` | Proves every lesson, exercise and case in jsdom, using the real harness. **31** checks pass at the moment: 2 lessons and 6 exercises, 1 case with 8 stations (a parts briefing, then the 7 interview stations, including the guided build), 3 Phase intros, and a Field Manual page for each of the 10 components. The validator also enforces the writing rules (line length, glossary jargon, an outro on every lesson), scaffold comments by tier, the difficulty ramp and concept coverage. |
+| `npm test` | Vitest unit tests. **41** pass at the moment: the simulation, rules, zones, the station graders, the URL shortener calibration, the guided build (a beginner's step-by-step progression), load readouts, the reference comparison and the glossary linker, and the briefing, quiz and trade-off graders. |
+| `npm run validate-content` | Proves every lesson, exercise and case in jsdom, using the real harness. **51** checks pass at the moment: 7 lessons and 21 exercises (Phase 1 lessons 1–5 and Briefing Room I, plus the Phase 2 debounce lesson), 1 case with 8 stations (a parts briefing, then the 7 interview stations, including the guided build), 3 Phase intros, and a Field Manual page for each of the 10 components. The validator also enforces the writing rules (line length, glossary jargon, an outro on every lesson), scaffold comments by tier, the difficulty ramp and concept coverage. |
 | `npm run build` | Sandbox, then typecheck (`tsc -b`), then the production build. |
-| `npm run e2e` | Playwright: builds, then serves on port 4174. On a Mac with Chrome, set `CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. **5** pass at the moment: the boot sequence and typed story (with motion), the home screen, a lesson, a code mission, and the URL shortener case played end to end through JARVIS's guided build, with sizes that differ from the reference. Tests run with `reducedMotion: "reduce"` by default (`playwright.config.ts`). |
+| `npm run e2e` | Playwright: builds, then serves on port 4174. On a Mac with Chrome, set `CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. **6** pass at the moment: the boot sequence and typed story (with motion), the home screen, a lesson, a code mission, the new formats (a quiz, a guided design table in a lesson, a trade-off), and the URL shortener case played end to end through JARVIS's guided build, with sizes that differ from the reference. Tests run with `reducedMotion: "reduce"` by default (`playwright.config.ts`). |
 
 Before every push, run all four: `npm run validate-content && npm test && npm run build && npm run e2e`.
 
@@ -69,6 +69,13 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
   - **The guided build** (`steps:` on a design station; `src/engine/steps.ts`; `src/ui/GuidedSteps.tsx`). One objective at a time, each with a short lesson and an optional question (a choice, or a number the calculator accepts as a sum). Steps tick from checks on the player's own design: `ran`, `has`, `clear` (a rule), `rubric` (a checker), `survives` (a scenario with every part under `max` load). The full lesson shows at Mark I, a checklist at Mark III, and nothing at Mark VII.
   - **The glossary** (`content/glossary.yaml`, `src/engine/glossary.ts`): the first use of each term in a lecture, guide, step or task gets a dotted underline and a plain definition on hover or tap. Lectures may hold ` ```scene ` blocks, which are mid-lesson story beats.
   - **The parts briefing** (a `briefing` station, Mark I only): one card per component the case uses, made from its Field Manual page, with one question each. Getting every card right first time is 🟢. A case's `requires:` lists the lessons that teach its parts; once they're all passed, the briefing becomes a skippable recap. B1's `requires` is empty until the Phase 3 basics exist.
+  - **Lesson exercise formats:**
+    - `sequence`, `predict` and `estimate`;
+    - `code`;
+    - **`quiz`:** several quick scenario questions. All right is 🟢, 80% is 🔵, 60% is 🟡.
+    - **`tradeoff`:** make the call, then tick the reasons. A wrong call is 🔴. The right call with a wrong reason ticked is 🟡, and with a right reason missed it's 🔵.
+    - **`design`:** a design table in a lesson, with its own scenarios and guided `steps:`. The player's work is saved under `benches` in the save, a new optional field with a default, so no version bump.
+    - The shared `src/ui/DesignBench.tsx` runs both lesson design exercises and case design stations.
   - **After a pass,** Rhodey's reference opens as "one of many designs that pass", with a part-by-part comparison (`src/engine/compare.ts`).
 - **The simulation** (`src/sim/engine.ts`):
   - A **deterministic, time-stepped flow model**, with no randomness at all.
@@ -101,7 +108,14 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
 - Zones and Rhodey's audit for **every** exercise type.
 - Saves with backups; story pop-ups; JARVIS's hint ladder; XP and suit-Mark titles.
 - **Content:**
-  - Phase 1, lesson 3 (DNS): a sequencer, a prediction, an estimate.
+  - **Phase 1, lessons 1–5 and Briefing Room I:**
+    - Clients and Servers: a sequence, a "who does the work?" quiz, and a guided design table ⭐ that must survive opening hour.
+    - IP, Packets and Ports: a sequence, an edge-case quiz, and a packet estimate.
+    - DNS: a sequence, a prediction, and an estimate.
+    - TCP and UDP: a sequence, a transport quiz, and a round-trip estimate.
+    - TLS and HTTPS: a sequence, a certificate-chain quiz, and a TLS-termination trade-off ⭐.
+    - Briefing Room I: the full timeline, a "what breaks" quiz, and a latency budget.
+    - The story runs from the blackout to "Hammer's contractor".
   - Phase 2, lesson 3, part 1 (debounce and throttle): three code missions (a debounce, a throttle that never drops the last call, and a race-safe debounced search).
   - **Case B1, the URL shortener:** a parts briefing (Mark I), then all seven stations, at Mark I, III and VII.
 - The validator proves all of it (reference designs land 🟢, naive ones 🔴, solutions pass, starters fail, no hint leaks, diagram and checkpoint YAML parses).
@@ -120,7 +134,7 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
 2. ✅ **Plain words and a richer story:** a glossary with term tooltips, writing rules (enforced), re-voiced scenes, mid-lesson beats and outros. **Scaffold comments and the difficulty ramp:** enforced by tier. The debounce ⭐ is now a race-safe search box (code), replacing the timeline prediction, which became a review card.
 3. ✅ **The JARVIS HUD look:** cyan holographic panels, a Canvas backdrop, the boot sequence, typed scenes, gauge and audit motion, the level-up toast, packets flowing through the design table, and a replay scrubber.
 4. ✅ **A parts briefing** before B1 (Mark I), which becomes a skippable recap once the Phase 3 basics are passed.
-5. **Phase 1, lessons 1–5 and Briefing Room I** (scripted first). Then **the Phase 3 basics** that B1 relies on: one server, load balancers, caching, databases and queues.
+5. ✅ **Phase 1, lessons 1–5 and Briefing Room I** (beats scripted in `story.md` first). Next: **the Phase 3 basics** that B1 relies on (one server, load balancers, caching, databases and queues), then set B1's `requires:`.
 
 **After that, in order:**
 1. **Phase 1, The Cave:** the rest of the lessons (6–13), R2–R3 and the Trial.
@@ -145,6 +159,7 @@ Newest first. One line per session or meaningful change: the date, where, and wh
 
 | Date | Where | What changed |
 |---|---|---|
+| 2026-10-08 | Claude Code desktop session | **Phase 1, batch 1:** lessons 1, 2, 4 and 5, and Briefing Room I, with the beats scripted in `story.md` first. **New formats:** `quiz`, `tradeoff`, and `design` inside lessons (the shared `DesignBench`, and `benches` in the save). Added networking glossary terms. The Notes tab hides when a lesson has none. Counts: 41 unit, 51 content checks, 6 e2e (§3, §4, §6). |
 | 2026-10-08 | Claude Code desktop session | **The parts briefing.** Added a new `briefing` station kind (Mark I only), with Field Manual cards and one question per part, graded by first-try answers. Added a case-level `requires:` that turns the briefing into a skippable recap once those lessons are passed. B1 now opens with six parts. Counts: 39 unit, 31 content checks (§3, §4, §6). |
 | 2026-10-08 | Claude Code desktop session | **The JARVIS HUD.** A new stylesheet (cyan holographic panels, Rajdhani and JetBrains Mono via `@fontsource`), a Canvas backdrop, the boot sequence, comms-window scenes that type out, gauge spin-up, stamped audits, a level-up toast and an XP ring. Packet-flow edges on the design table, a replay scrubber, and lesson outros under the clue. The e2e tests default to reduced motion; one new test covers the boot and typing. Counts: 5 e2e (§3, §4, §6). |
 | 2026-10-08 | Claude Code desktop session | **Plain words, richer story, scaffolds and the ramp.** Added the glossary with term tooltips; ` ```scene ` beats in lectures; writing rules in `story.md`, enforced by the validator (25 words a line, glossary jargon, an outro on every lesson); scaffold comments by tier; the ramp (tier order, test counts); concept coverage (`covers:`). Re-voiced the Phase 1 and 2 intros, the DNS and debounce lessons, and B1's scene. The debounce ⭐ is now a race-safe search box. Removed Parseltongue leftovers ("lumos", "spell"). Counts: 37 unit, 30 content checks (§3, §4, §6). |
