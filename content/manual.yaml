@@ -1,0 +1,106 @@
+# The Field Manual: one page per design-table component, in plain words.
+# Opened from the ⓘ next to each palette button and from the inspector.
+# Capacity numbers must match CAPACITY in src/sim/components.ts (the validator checks).
+
+client:
+  what: The people using your system - browsers and phone apps sending requests.
+  analogy: Customers walking up to the counter.
+  when: Every design starts here. You never configure them; they just bring traffic.
+  capacity: As much traffic as the scenario sends.
+  fails: Never - but they give up and leave if you're slow.
+  settings: {}
+
+cdn:
+  what: A network of servers spread around the world, close to users. It can keep copies of responses and answer from nearby.
+  analogy: A chain of corner shops stocking the bestsellers, so people don't drive to the warehouse.
+  when: Lots of people around the world reading the same public things - images, videos, popular pages.
+  capacity: Effectively unlimited for your purposes (about 10,000,000 requests a second).
+  cost: 200 credits a month, or 400 with caching turned on.
+  fails: Serves stale copies if the edge TTL is long and the data changes. Can't cache anything private to one user.
+  settings:
+    cache_reads: Lets the edge answer cache-friendly reads itself, without asking your servers.
+    ttl_s: How many seconds the edge keeps a copy before asking you again.
+
+lb:
+  what: The front door. It takes every incoming request and passes it to one of the service copies behind it, spreading the work evenly.
+  analogy: A host at a restaurant sending each new party to a free waiter.
+  when: As soon as you run more than one copy of a service - which is always, in production.
+  capacity: About 100,000 requests a second per copy.
+  cost: 50 credits a month per copy (managed load balancers run as a pair).
+  fails: Rarely the bottleneck. If it has only one copy, it is itself a single point of failure.
+  settings:
+    replicas: Copies of the load balancer. Two is the normal, safe default.
+
+service:
+  what: Your application code, running on servers. It receives requests, does the logic, and talks to caches, stores and queues. It keeps nothing important in its own memory ("stateless"), so you can run many identical copies.
+  analogy: Waiters - any waiter can serve any table, and you hire more on a busy night.
+  when: Always. This is where your product's logic lives.
+  capacity: About 1,000 requests a second per copy (replica).
+  cost: 150 credits a month per copy.
+  fails: When asked for more than its copies can do, requests queue up, slow down, then fail. One copy is a single point of failure.
+  settings:
+    replicas: How many identical copies run behind the load balancer. Capacity grows with each copy.
+    rate_limit: Rejects anyone sending too many writes too fast (answering "429 Too Many Requests").
+    keygen: How new short codes are made. Some schemes can give two links the same code.
+
+cache:
+  what: A small, very fast store that keeps data in memory (RAM) instead of on disk. It holds copies of the data people ask for most, so most reads never reach the database.
+  analogy: The bestsellers on the counter, so the shopkeeper doesn't walk to the stockroom every time.
+  when: The same data is read again and again (reads far outnumber writes), or one key is suddenly very popular.
+  capacity: About 50,000 reads a second per copy. Its hit rate depends on memory - roughly memory ÷ the size of the data people read.
+  cost: 60 credits a month per copy, plus 10 per GB of memory.
+  fails: A miss costs a trip to the database anyway. If the cache restarts it comes back empty ("cold"), and a flood of misses hits the database at once (a "stampede"). Without a TTL, old data can be served forever.
+  settings:
+    replicas: Cache copies. Each adds read capacity and memory.
+    memory_gb: Memory per copy. More memory holds more of the data people read, so more hits.
+    ttl_s: Seconds before an entry expires and is fetched fresh. 0 means never - risky. A day is 86,400 seconds.
+
+queue:
+  what: A waiting line for work. The service drops a message on it ("someone clicked link X") and answers the user straight away. Workers pick the messages up later.
+  analogy: A suggestion box - you drop a note and walk away; someone reads the box later.
+  when: Work the user doesn't need to wait for - analytics, emails, thumbnails - or bursts you want to smooth out.
+  capacity: About 100,000 messages a second.
+  cost: 100 credits a month.
+  fails: If nothing takes messages off it, or the workers are too slow, the backlog grows until the queue fills up.
+  settings: {}
+
+worker:
+  what: Background processes that take messages off a queue and do the slow work - like saving each click to the analytics store.
+  analogy: The staff who empty the suggestion box and file each note.
+  when: Always paired with a queue.
+  capacity: About 2,000 messages a second per worker (they save in batches).
+  cost: 100 credits a month per worker.
+  fails: Too few workers and the queue backs up. They need somewhere to save their results - wire them to a store.
+  settings:
+    replicas: How many workers run. Capacity grows with each.
+
+kvstore:
+  what: A database built for one job - "give me the value for this key" - done fast at huge scale (like DynamoDB or Cassandra). Keys are split across **partitions** (groups of machines), and each partition can have **replicas** (copies).
+  analogy: A huge wall of numbered lockers, split into sections, with a duplicate key for every locker.
+  when: Lookups by one key, very large data, very high traffic. Not for complex questions across many records.
+  capacity: Each partition handles about 10,000 reads a second (per replica) and about 3,000 writes a second. One key always lives on one partition, so a very popular key loads one partition only.
+  cost: 120 credits a month per partition per replica.
+  fails: A "hot key" overloads its one partition. With one replica, losing a machine loses that partition.
+  settings:
+    partitions: How many groups the keys are spread across. More partitions = more total reads and writes.
+    replicas: Copies of every partition. More copies = more reads per partition, and it survives a machine dying.
+
+sqldb:
+  what: A relational database (like Postgres or MySQL) - tables with rows and columns, rich queries, and transactions. One main machine (the "primary") takes all the writes; extra copies ("read replicas") can answer reads.
+  analogy: A meticulous librarian with a card catalogue - can answer complicated questions, but there is only one of them taking new books.
+  when: Data with relationships, queries across many rows, or anything that must change together safely (money, bookings).
+  capacity: About 5,000 reads a second per machine, and about 1,000 writes a second (all on the primary).
+  cost: 500 credits a month, plus 350 per read replica.
+  fails: Writes can't spread beyond the one primary. Looking rows up by a column with no index means scanning the whole table - slow and costly.
+  settings:
+    read_replicas: Extra copies that answer reads. Each adds read capacity and a standby if the primary dies.
+    indexes: Columns the database keeps a sorted index of, so lookups by them are fast.
+
+objectstore:
+  what: Cheap, very durable storage for files - images, videos, backups (like S3). You store and fetch whole files by name.
+  analogy: A vast self-storage warehouse - cheap and safe, but you don't pop in for one sentence from a box.
+  when: Big files. Pair it with a CDN to deliver them to users quickly.
+  capacity: Effectively unlimited (about 1,000,000 requests a second).
+  cost: 80 credits a month.
+  fails: Slow for small, frequent lookups (about 25 ms each). Not a database.
+  settings: {}

@@ -3,6 +3,7 @@ import type { MockRoute } from "../runtime/harness";
 import type { SettingSpec } from "../sim/components";
 import type { Design, NodeKind, Scenario, Targets } from "../sim/types";
 import type { Ask, Chip, DeskCheck, Endpoint, Question, Requirement } from "./stations";
+import type { DesignStep } from "./steps";
 
 export interface Hints {
   nudge: string;
@@ -15,6 +16,18 @@ export interface Hints {
 export interface SceneLine {
   who: string;
   line: string;
+}
+
+/** A Field Manual page for one design-table component. */
+export interface ManualEntry {
+  what: string;
+  analogy: string;
+  when: string;
+  capacity: string;
+  cost?: string;
+  fails: string;
+  /** Setting key → what it does. */
+  settings: Record<string, string>;
 }
 
 export interface CastMember {
@@ -136,6 +149,8 @@ export interface DesignStation extends StationBase {
   targets: Targets;
   rubric: { must: string[]; should: string[] };
   rules: string[];
+  /** The guided build: shown in full at Mark I, as a checklist at Mark III, hidden at Mark VII. */
+  steps?: DesignStep[];
 }
 
 export interface DeskStation extends StationBase {

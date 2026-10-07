@@ -1,7 +1,9 @@
 // Loads content/** at build time. Solutions (`*.solution.*`) are never bundled.
 import { load as loadYaml } from "js-yaml";
 import castRaw from "/content/cast.yaml?raw";
-import type { Case, CastMember, Exercise, Lesson, Phase, ReviewCard, SceneLine } from "./types";
+import manualRaw from "/content/manual.yaml?raw";
+import type { NodeKind } from "../sim/types";
+import type { Case, CastMember, Exercise, Lesson, ManualEntry, Phase, ReviewCard, SceneLine } from "./types";
 
 const phaseFiles = import.meta.glob("/content/phase-*/phase.yaml", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 const lessonFiles = import.meta.glob("/content/phase-*/*/lesson.yaml", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
@@ -12,6 +14,8 @@ const reviewFiles = import.meta.glob("/content/phase-*/*/review.yaml", { query: 
 const caseFiles = import.meta.glob("/content/cases/*/case.yaml", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
 export const CAST = loadYaml(castRaw) as Record<string, CastMember>;
+/** The Field Manual: a plain-words page for every design-table component. */
+export const MANUAL = loadYaml(manualRaw) as Record<NodeKind, ManualEntry>;
 
 const dirOf = (path: string) => path.slice(0, path.lastIndexOf("/") + 1);
 

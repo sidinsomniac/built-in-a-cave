@@ -133,30 +133,80 @@ test("the URL shortener case, at Mark I, through all seven stations", async ({ p
   await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
   await page.getByTestId("next-station").click();
 
-  // 3. The design table: first a bare design that fails, then a real one.
+  // 3. The design table, through JARVIS's guided build - with sizes that differ from
+  // Rhodey's reference (one 32 GB cache, one links partition), to prove there's no single answer.
+  const stepIs = (id: string) => expect(page.getByTestId(`step-${id}`)).toHaveAttribute("data-state", "now");
+  const answerNumber = async (value: string) => {
+    await page.getByTestId("step-number").fill(value);
+    await page.getByTestId("step-check").click();
+  };
+  await stepIs("run-bare");
   await page.getByTestId("run-sim").click();
   await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "failing");
   await expect(page.getByTestId("audit")).toContainText("A service with nowhere to keep its data");
+  await expect(page.getByTestId("bottlenecks")).toContainText("Asked for 12,120 requests/s; can do 1,000 requests/s");
 
+  await stepIs("store");
+  await page.getByTestId("manual-kvstore").click();
+  await expect(page.getByTestId("manual")).toContainText("10,000 reads a second");
+  await page.getByRole("button", { name: "Close the Field Manual" }).click();
+  await page.getByTestId("step-option-2").click();
+  await expect(page.getByTestId("step-ask")).toContainText("Not quite");
+  await page.getByTestId("step-option-0").click();
+  await addAndConfigure(page, "kvstore", "Links store", {});
+  await connect(page, "api", "🗄️ Links store");
+
+  await stepIs("copies");
+  await answerNumber("4000 / 1000");
   await selectNode(page, "api");
   let panel = await inspector(page);
-  await panel.getByLabel("Replicas", { exact: true }).fill("16");
-  await panel.getByLabel("Short-code scheme", { exact: true }).selectOption("counter_base62");
-  await panel.getByLabel("Rate-limit writes per user", { exact: true }).check();
-  await addAndConfigure(page, "cache", "Link cache", { Replicas: "2", "Memory (GB)": "16", "TTL (seconds, 0 = never expire)": "86400" });
-  await addAndConfigure(page, "kvstore", "Links store", { Partitions: "4", Replicas: "3" });
+  await panel.getByLabel("Replicas", { exact: true }).fill("5");
+
+  await stepIs("clicks");
+  await answerNumber("4000");
   await addAndConfigure(page, "queue", "Click events", {});
-  await addAndConfigure(page, "worker", "Analytics workers", { Replicas: "8" });
-  await addAndConfigure(page, "kvstore", "Analytics store", { Partitions: "6", Replicas: "2" });
-  await connect(page, "api", "⚡ Link cache");
-  await connect(page, "api", "🗄️ Links store");
+  await addAndConfigure(page, "worker", "Analytics workers", { Replicas: "2" });
+  await addAndConfigure(page, "kvstore", "Analytics store", { Partitions: "2" });
   await connect(page, "api", "📬 Click events");
   await connect(page, "queue", "🛠️ Analytics workers");
   await connect(page, "worker", "🗄️ Analytics store");
+
+  await stepIs("cache");
+  await answerNumber("12000 * 0.4");
+  await addAndConfigure(page, "cache", "Link cache", { "Memory (GB)": "32", "TTL (seconds, 0 = never expire)": "86400" });
+  await connect(page, "api", "⚡ Link cache");
+
+  await stepIs("spike");
+  await answerNumber("12000 / 800");
+  await page.getByTestId("run-sim").click();
+  await expect(page.getByTestId("bottlenecks")).toContainText("Shortener service");
+  await selectNode(page, "api");
+  panel = await inspector(page);
+  await expect(panel.getByTestId("readout")).toContainText("Can do 5,000 requests/s");
+  await panel.getByLabel("Replicas", { exact: true }).fill("16");
+  await selectNode(page, "worker");
+  await panel.getByLabel("Replicas", { exact: true }).fill("8");
+  await selectNode(page, "kvstore2");
+  await panel.getByLabel("Partitions", { exact: true }).fill("6");
+
+  await stepIs("codes");
+  await page.getByTestId("step-option-0").click();
+  await selectNode(page, "api");
+  await panel.getByLabel("Short-code scheme", { exact: true }).selectOption("counter_base62");
+  await panel.getByLabel("Rate-limit writes per user", { exact: true }).check();
+
+  await stepIs("spares");
+  await selectNode(page, "kvstore");
+  await panel.getByLabel("Replicas", { exact: true }).fill("2");
+  await selectNode(page, "kvstore2");
+  await panel.getByLabel("Replicas", { exact: true }).fill("2");
+  await expect(page.getByTestId("steps-complete")).toBeVisible();
+
   await page.getByTestId("run-sim").click();
   await expect(page.getByTestId("gauge")).toHaveAttribute("data-zone", "optimal");
   await expect(page.getByTestId("sim-report")).toContainText("A link goes viral");
   await page.getByTestId("show-reference").click();
+  await expect(page.getByTestId("reference")).toContainText("one");
   await page.getByTestId("next-station").click();
 
   // 4. The API desk.

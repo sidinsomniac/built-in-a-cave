@@ -11,11 +11,14 @@ import { join } from "node:path";
 import { load as loadYaml } from "js-yaml";
 import { describe, expect, it } from "vitest";
 import { auditDesign } from "../src/engine/audit";
-import { CASES, CAST, LESSONS } from "../src/engine/content";
+import { CASES, CAST, LESSONS, MANUAL } from "../src/engine/content";
+import { checkStep } from "../src/engine/steps";
 import { gradeAssembly, gradeDesk, gradeEstimates, gradeInterrogation } from "../src/engine/stations";
 import type { CodeExercise, CodeStation, Lesson, SceneLine } from "../src/engine/types";
 import { runMission } from "../src/runtime/harness";
+import { CAPACITY, COMPONENTS } from "../src/sim/components";
 import { CHECKERS, RULES } from "../src/sim/rules";
+import type { NodeKind } from "../src/sim/types";
 import type { Scenario } from "../src/sim/types";
 
 const ROOT = join(import.meta.dirname, "..", "content");
@@ -172,6 +175,24 @@ describe("cases", () => {
               const ref = auditDesign(c.reference, spec);
               expect(ref.zone, `the reference design must be optimal: ${ref.items.filter((i) => i.status !== "covered").map((i) => i.title).join("; ")}`).toBe("optimal");
               expect(auditDesign(c.naive, spec).zone, "the naive design must fail").toBe("failing");
+              // The guided build: every check is real, every question answerable, and the
+              // reference design passes every step, while the starting design doesn't.
+              const ctx = { scenarios: spec.scenarios, ran: true };
+              for (const step of st.steps ?? []) {
+                for (const check of step.done) {
+                  if ("clear" in check) expect(RULES[check.clear], `${step.id}: unknown rule ${check.clear}`).toBeTruthy();
+                  if ("rubric" in check) expect(CHECKERS[check.rubric], `${step.id}: unknown checker ${check.rubric}`).toBeTruthy();
+                  if ("survives" in check) expect(st.scenarios, `${step.id}: unknown scenario ${check.survives}`).toContain(check.survives);
+                  if ("has" in check) expect(COMPONENTS[check.has], `${step.id}: unknown kind ${check.has}`).toBeTruthy();
+                }
+                if (step.ask && "options" in step.ask) expect(step.ask.answer >= 0 && step.ask.answer < step.ask.options.length, `${step.id}: answer out of range`).toBe(true);
+                if (step.ask && "number" in step.ask) expect(step.ask.number, `${step.id}: a numeric ask needs a positive answer`).toBeGreaterThan(0);
+                expect(step.goal && step.teach && step.hint, `${step.id}: needs goal, teach and hint`).toBeTruthy();
+                expect(checkStep(step, c.reference, ctx).every(Boolean), `the reference design must pass step ${step.id}`).toBe(true);
+              }
+              if (st.steps?.length) {
+                expect(st.steps.some((step) => !checkStep(step, st.prebuilt, ctx).every(Boolean)), "the starting design must not already finish the guided build").toBe(true);
+              }
               break;
             }
             case "curveballs": {
@@ -196,6 +217,28 @@ describe("cases", () => {
           }
         });
       }
+    });
+  }
+});
+
+describe("the Field Manual", () => {
+  // The capacities each page must quote, so the manual never drifts from the simulation.
+  const quotes: Partial<Record<NodeKind, number[]>> = {
+    lb: [CAPACITY.lb],
+    service: [CAPACITY.service],
+    cache: [CAPACITY.cache],
+    queue: [CAPACITY.queue],
+    worker: [CAPACITY.worker],
+    kvstore: [CAPACITY.kvRead, CAPACITY.kvWrite],
+    sqldb: [CAPACITY.sqlRead, CAPACITY.sqlWrite],
+  };
+  for (const kind of Object.keys(COMPONENTS) as NodeKind[]) {
+    it(`has a page for ${kind} that matches the simulation`, () => {
+      const page = MANUAL[kind];
+      expect(page, `content/manual.yaml is missing ${kind}`).toBeTruthy();
+      for (const field of ["what", "analogy", "when", "capacity", "fails"] as const) expect(page[field], `${kind}: missing ${field}`).toBeTruthy();
+      for (const setting of COMPONENTS[kind].settings) expect(page.settings?.[setting.key], `${kind}: explain the "${setting.key}" setting`).toBeTruthy();
+      for (const n of quotes[kind] ?? []) expect(page.capacity, `${kind}: the capacity should say ${n.toLocaleString("en-US")}`).toContain(n.toLocaleString("en-US"));
     });
   }
 });

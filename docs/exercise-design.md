@@ -110,6 +110,29 @@ rubric:
 rules: [spof, unindexed_query, cache_without_ttl, sync_third_party]
 ```
 
+**The guided build (`steps:`).** A design station can carry a step-by-step build for Mark I. It shows in full at Mark I, as a checklist at Mark III, and is hidden at Mark VII:
+```yaml
+steps:
+  - id: cache
+    title: The viral link
+    goal: Put a cache between the service and the links store, with a TTL.   # one plain sentence
+    teach: |                    # 3-8 short lines: the idea, an analogy, the numbers needed
+      ...
+    ask:                        # optional: a choice, or a number (accepted within 25% either way)
+      q: 40% of 12,000 redirects a second are for one link. How many a second is that?
+      number: 4800
+      unit: per second
+      why: ...                  # shown once it's right
+    done:                       # every check must pass on the player's design
+      - { rubric: cache_hot_reads }
+      - { clear: cache_without_ttl }
+    hint: Add a Cache, connect service → cache, and set its TTL above 0.
+```
+
+The check kinds are `{ ran: true }`, `{ has: kind, from?: kind }`, `{ clear: ruleId }`, `{ rubric: checkerId }` and `{ survives: scenarioId, kinds?: [...], max?: 0.8 }` (every part, or every part of those kinds, stays at or under `max` load).
+
+Steps teach the **method** (the work asked ÷ what one unit can do), never the final numbers. The validator requires that the reference design passes every step and that the starting design doesn't finish the build. `src/engine/steps.test.ts` replays a beginner's build, so a step that can't be reached in order fails the tests.
+
 The rubric items are **checkers** in `src/sim/rubric/`: functions over the design graph and its settings. Rules are anti-pattern detectors (GDD §5.3).
 
 ### 5.3 `blueprint`: front-end architecture

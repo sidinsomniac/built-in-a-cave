@@ -13,14 +13,16 @@ import {
   type EdgeChange,
   type Connection,
   type NodeProps,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { COMPONENTS, withDefaults, type SettingSpec } from "../sim/components";
-import type { Design, DesignNode, NodeKind } from "../sim/types";
+import type { Design, DesignNode, NodeKind, NodeLoad } from "../sim/types";
 import type { Zone } from "../engine/zones";
+import { FieldManual } from "./FieldManual";
 
-type FlowData = { node: DesignNode; heat?: Zone; selected: boolean; specs: SettingSpec[] };
+type FlowData = { node: DesignNode; heat?: Zone; selected: boolean; specs: SettingSpec[]; load?: NodeLoad };
 
 function summary(node: DesignNode, specs: SettingSpec[]): string {
   const s = withDefaults(node);
@@ -46,12 +48,42 @@ function ComponentNode({ data }: NodeProps<Node<FlowData>>) {
       </div>
       <div className="meta">{spec.name}</div>
       <div className="meta">{summary(data.node, data.specs)}</div>
+      {data.load && <LoadBar load={data.load} />}
       <Handle type="source" position={Position.Right} />
     </div>
   );
 }
 
+const short = (v: number) => (v >= 1_000_000 ? `${+(v / 1_000_000).toFixed(1)}M` : v >= 10_000 ? `${Math.round(v / 1000)}k` : v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(Math.round(v)));
+
+export const loadZone = (util: number): Zone => (util > 1 ? "failing" : util > 0.8 ? "risky" : util > 0.6 ? "solid" : "optimal");
+
+/** How busy a node was at its worst second: a bar plus "asked for / can do". */
+export function LoadBar({ load }: { load: NodeLoad }) {
+  const pct = Math.round(load.util * 100);
+  return (
+    <div className={`loadbar ${loadZone(load.util)}`} title={`${load.demand.toLocaleString()} ${load.unit} asked · ${load.capacity.toLocaleString()} ${load.unit} possible`} data-testid="loadbar">
+      <div className="track">
+        <i style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+      <span>
+        {load.util >= 99 ? "down" : `${pct}%`} · {short(load.demand)}/{short(load.capacity)} {load.unit}
+      </span>
+    </div>
+  );
+}
+
 const nodeTypes = { component: ComponentNode };
+
+/** Re-frames the canvas whenever a box is added or removed, so nothing lands off-screen. */
+function FitOnGrow({ count }: { count: number }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    const t = setTimeout(() => fitView({ padding: 0.15, duration: 250 }), 30);
+    return () => clearTimeout(t);
+  }, [count, fitView]);
+  return null;
+}
 
 export interface DesignTableProps {
   design: Design;
@@ -59,12 +91,15 @@ export interface DesignTableProps {
   palette: NodeKind[];
   extraSettings?: Partial<Record<NodeKind, SettingSpec[]>>;
   heat?: Record<string, Zone>;
+  /** Per-node load readouts from the last run (busiest scenario). */
+  loads?: Record<string, NodeLoad>;
   readOnly?: boolean;
   height?: number;
 }
 
-export function DesignTable({ design, onChange, palette, extraSettings = {}, heat = {}, readOnly = false, height }: DesignTableProps) {
+export function DesignTable({ design, onChange, palette, extraSettings = {}, heat = {}, loads, readOnly = false, height }: DesignTableProps) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [manual, setManual] = useState<NodeKind | null>(null);
   const [connectTo, setConnectTo] = useState("");
   const specsFor = (kind: NodeKind) => [...COMPONENTS[kind].settings, ...(extraSettings[kind] ?? [])];
   const update = (d: Design) => onChange?.(d);
@@ -75,11 +110,11 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
         id: n.id,
         type: "component",
         position: { x: n.x ?? 60 + (i % 4) * 220, y: n.y ?? 60 + Math.floor(i / 4) * 140 },
-        data: { node: n, heat: heat[n.id], selected: n.id === selected, specs: specsFor(n.kind) },
+        data: { node: n, heat: heat[n.id], selected: n.id === selected, specs: specsFor(n.kind), load: loads?.[n.id] },
         deletable: !readOnly && n.kind !== "client",
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [design, heat, selected, readOnly],
+    [design, heat, loads, selected, readOnly],
   );
   const edges: Edge[] = useMemo(() => design.edges.map((e) => ({ id: `${e.from}->${e.to}`, source: e.from, target: e.to, animated: true, deletable: !readOnly })), [design, readOnly]);
 
@@ -119,8 +154,13 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
     const count = design.nodes.filter((n) => n.kind === kind).length;
     const id = `${kind}${count ? count + 1 : ""}`;
     const uniqueId = design.nodes.some((n) => n.id === id) ? `${kind}-${Date.now() % 100000}` : id;
-    const anchor = design.nodes.find((n) => n.id === selected);
-    const node: DesignNode = { id: uniqueId, kind, label: COMPONENTS[kind].name, settings: {}, x: (anchor?.x ?? 300) + 220, y: (anchor?.y ?? 120) + 40 * count };
+    const anchor = design.nodes.find((n) => n.id === selected) ?? design.nodes[design.nodes.length - 1];
+    // Drop it to the right of the selected box, stepping down until the spot is free.
+    const x = (anchor?.x ?? 300) + 220;
+    let y = anchor?.y ?? 120;
+    const taken = (yy: number) => design.nodes.some((n) => Math.abs((n.x ?? 0) - x) < 190 && Math.abs((n.y ?? 0) - yy) < 110);
+    for (let tries = 0; taken(y) && tries < 30; tries++) y += 120;
+    const node: DesignNode = { id: uniqueId, kind, label: COMPONENTS[kind].name, settings: {}, x, y };
     update({ ...design, nodes: [...design.nodes, node] });
     setSelected(uniqueId);
   };
@@ -154,6 +194,7 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
         >
           <Background gap={22} color="#2a201c" />
           <Controls showInteractive={false} />
+          <FitOnGrow count={design.nodes.length} />
         </ReactFlow>
       </div>
       {!readOnly && (
@@ -162,9 +203,14 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
             <b>Add a component</b>
             <div className="palette" style={{ marginTop: 8 }}>
               {palette.map((k) => (
-                <button key={k} className="btn small" onClick={() => add(k)} title={COMPONENTS[k].blurb} data-testid={`add-${k}`}>
-                  {COMPONENTS[k].icon} {COMPONENTS[k].name}
-                </button>
+                <span key={k} className="pal-item">
+                  <button className="btn small" onClick={() => add(k)} title={COMPONENTS[k].blurb} data-testid={`add-${k}`}>
+                    {COMPONENTS[k].icon} {COMPONENTS[k].name}
+                  </button>
+                  <button className="btn small ghost info" onClick={() => setManual(k)} aria-label={`Field Manual: ${COMPONENTS[k].name}`} data-testid={`manual-${k}`}>
+                    ⓘ
+                  </button>
+                </span>
               ))}
             </div>
             <p className="muted small">Drag from a box's right edge to another box to wire them - or use "Connect to" below.</p>
@@ -184,7 +230,13 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
                     </button>
                   )}
                 </div>
-                <p className="muted small">{COMPONENTS[sel.kind].blurb}</p>
+                <p className="muted small">
+                  {COMPONENTS[sel.kind].blurb}{" "}
+                  <button className="linklike" onClick={() => setManual(sel.kind)} data-testid="inspector-manual">
+                    📘 Field Manual
+                  </button>
+                </p>
+                {loads?.[sel.id] && <Readout load={loads[sel.id]} />}
                 <label>
                   <span className="small">Label</span>
                   <input value={sel.label ?? ""} onChange={(e) => update({ ...design, nodes: design.nodes.map((n) => (n.id === sel.id ? { ...n, label: e.target.value } : n)) })} style={{ width: "100%" }} />
@@ -248,6 +300,22 @@ export function DesignTable({ design, onChange, palette, extraSettings = {}, hea
           </div>
         </aside>
       )}
+      {manual && <FieldManual kind={manual} extraSettings={extraSettings[manual]} onClose={() => setManual(null)} />}
+    </div>
+  );
+}
+
+/** The full readout for the selected node: what it was asked for, what it can do, and why. */
+function Readout({ load }: { load: NodeLoad }) {
+  return (
+    <div className="readout-card" data-testid="readout">
+      <div className="small muted">At its busiest (second {load.t} of the run)</div>
+      <LoadBar load={load} />
+      <div className="small">
+        Asked for <b>{load.demand.toLocaleString()} {load.unit}</b>. Can do <b>{load.capacity.toLocaleString()} {load.unit}</b>
+        {load.sizing && <span className="muted"> ({load.sizing})</span>}.
+      </div>
+      {load.note && <div className="small soft">{load.note}</div>}
     </div>
   );
 }

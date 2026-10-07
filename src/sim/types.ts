@@ -103,8 +103,28 @@ export interface SimResult {
   lostEvents: number;
   /** Each node's highest utilisation during the run (1 = exactly at capacity). */
   peakUtil: Record<string, number>;
+  /** What each node was asked to do at its busiest second, against what it can do. */
+  nodeLoad: Record<string, NodeLoad>;
   /** Per-second trace for the replay timeline. */
   timeline: { t: number; p99: number; errorRate: number; hottest: string; utilisation: number }[];
   /** Plain-language notes on what happened (for JARVIS and the audit). */
   notes: string[];
+}
+
+/** A node's load at its busiest second, in plain numbers the player can reason with. */
+export interface NodeLoad {
+  /** Utilisation at that second (1 = exactly at capacity; Infinity-safe, capped at 99). */
+  util: number;
+  /** Second of the run it happened. */
+  t: number;
+  /** Work asked of the node, e.g. 12,000. */
+  demand: number;
+  /** Work the node can do as configured, e.g. 10,000. */
+  capacity: number;
+  /** What's being counted, e.g. "reads/s" or "events/s". */
+  unit: string;
+  /** How the capacity is made up, e.g. "1 partition × 1 copy × 10,000 reads/s". */
+  sizing: string;
+  /** Anything that makes the plain sum misleading (a hot key, a dead node, writes). */
+  note?: string;
 }

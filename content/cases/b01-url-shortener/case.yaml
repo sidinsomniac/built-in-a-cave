@@ -126,12 +126,159 @@ stations:
     title: The Design Table
     timebox: 15
     guide: |
-      Now wire the system. A redirect is a **read**: look up the short code, return the long URL.
-      Creating a link is a **write**. Every redirect also produces a **click event** for analytics.
+      Time to build. Two kinds of traffic hit this system:
+      - a **redirect** (someone clicks a short link): look up the code, send them to the long URL. That's a **read**.
+      - **creating a link**: save a new code. That's a **write**.
 
-      I've placed the clients, a load balancer and one service. Add what the requirements need,
-      choose settings, then **Run the simulation**. Watch the replay for the first component to
-      turn red.
+      Every redirect also makes a **click event**, because Fury wants every click counted.
+
+      I'll walk you through it one step at a time in the build plan below. There is no single right answer:
+      the simulation judges your design by what it *does* (speed, errors, cost), not by matching my numbers.
+      Tap **ⓘ** on any part in the palette for its Field Manual page.
+    steps:
+      - id: run-bare
+        title: Press play
+        goal: Run the simulation on the starting design and see what breaks.
+        teach: |
+          Before fixing anything, **look**. The simulation fires a normal day of traffic at the design,
+          then a day when one link goes viral. Afterwards each box shows a **load bar**: how busy it was
+          at its worst moment. Over 100% means it was asked for more than it can do, and requests failed.
+        done: [{ ran: true }]
+        hint: The ▶ Run the simulation button is under the table.
+      - id: store
+        title: A home for the links
+        goal: Give the service somewhere to keep links, and wire the service to it.
+        teach: |
+          A service is just code. If the machine restarts, everything in its memory is gone.
+          Links must live in a **datastore**: a database that keeps data on disk and survives restarts.
+
+          Every redirect is the same question: *"what's the long URL for code `aZ3kQ9x`?"*. That's a lookup
+          by **one key**. Open the Field Manual (ⓘ) for the **Key-value store** and the **SQL database** to compare.
+
+          To wire: drag from the right edge of the service to the store, or select the service and use **Connect to**.
+        ask:
+          q: Every redirect looks up one link by its short code - nothing fancier. Which store fits best at huge scale?
+          options:
+            - A key-value store - fast lookups by one key, and it spreads keys across machines
+            - Object storage - built for big files like photos and videos
+            - Nothing - keep the links in the service's memory
+          answer: 0
+          why: |
+            A key-value store is built for exactly this: give it a key, get a value back, fast, at any scale.
+            (A SQL database with an index on the code also works - it's just more than this job needs.)
+        done: [{ clear: no_datastore }]
+        hint: Add a Key-value store (or SQL database) from the palette, then connect the service → the store.
+      - id: copies
+        title: Enough copies for a normal day
+        goal: Run enough copies of the service that a normal day fits - no service over 100%.
+        teach: |
+          Each copy (a **replica**) of the service handles about **1,000 requests a second**. The load balancer
+          spreads requests evenly across the copies, so more copies means more capacity.
+
+          After a run, the service's load bar shows **what it was asked for** and **what it can do**.
+          Divide one by the other and you know how many copies you need.
+        ask:
+          q: A normal day brings about 4,000 redirects a second. One copy handles about 1,000. How many copies, at the very least?
+          number: 4
+          unit: copies
+          why: 4,000 ÷ 1,000 = 4 - and since link creation adds a few more requests, the readout will nudge you to round up.
+        done: [{ survives: steady, kinds: [service] }]
+        hint: Select the service and raise Replicas. Run again and read its load bar.
+      - id: clicks
+        title: Count clicks later
+        goal: Record every click without making the user wait - and keep a normal day under 100% everywhere.
+        teach: |
+          Right now each redirect also **writes** its click to the links store before answering. The user waits
+          for that write, and the store takes a write for every single read.
+
+          A **queue** fixes this: the service drops a small "someone clicked" message on the queue and answers
+          straight away. **Workers** take messages off the queue and save them to **their own store**.
+          This is called doing the work **asynchronously** - later, not during the request.
+
+          Wire it as: service → queue → workers → a second key-value store for analytics.
+          Then size them using the load bars: each worker handles about **2,000 events a second**,
+          and each store partition takes about **3,000 writes a second**.
+        ask:
+          q: If every redirect wrote its click to the links store before answering, how many writes a second would that store take on a normal day?
+          number: 4000
+          unit: writes/s
+          why: One click per redirect - so 4,000 writes a second, on a store that should be busy answering reads.
+        done: [{ rubric: async_events }, { survives: steady }]
+        hint: Queue, then Workers, then a Key-value store - wired in a chain from the service. Read the workers' and the analytics store's load bars.
+      - id: cache
+        title: The viral link
+        goal: Put a cache between the service and the links store, with an expiry time (TTL).
+        teach: |
+          When one link goes viral, a huge share of all redirects ask for **the same key**. In a key-value store,
+          one key always lives on **one partition** - so that one partition takes the whole flood, no matter how many
+          partitions you add.
+
+          A **cache** is a small, very fast memory store in front of the database. The service checks the cache
+          first; only a **miss** goes on to the store. Popular links stay in the cache, so the store barely notices
+          the viral link. This is called **cache-aside**.
+
+          Give cache entries a **TTL** (time to live): after that many seconds an entry expires and is fetched fresh.
+          Without one, a deleted or expired link could be served forever.
+        ask:
+          q: At the viral peak, 12,000 redirects arrive each second and 40% of them are for the same link. How many a second ask for that one link?
+          number: 4800
+          unit: per second
+          why: 40% of 12,000 = 4,800 reads a second for one key - nearly half a partition's capacity, before any other link is read.
+        done: [{ rubric: cache_hot_reads }, { clear: cache_without_ttl }]
+        hint: Add a Cache, connect service → cache, and set its TTL above 0 (a day is 86,400 seconds).
+      - id: spike
+        title: Ride the spike
+        goal: Survive the viral day with every part under 80% busy at the peak.
+        teach: |
+          At the peak, traffic is **3×** a normal day - every part on the request path gets 3× the work.
+
+          Why aim for **80%**, not 100%? Because waiting time explodes as anything gets close to full:
+          at 50% busy, requests barely queue; at 95%, they queue for ages. Keeping headroom keeps it fast.
+
+          Use the load bars: each one tells you what it was asked for and what it can do. The cache's readout
+          also shows its **hit rate** - more memory holds more of the links people read, so fewer misses reach the store.
+        ask:
+          q: The peak brings about 12,000 requests a second. To keep the service under 80% busy (800 per copy), how many copies?
+          number: 15
+          unit: copies
+          why: 12,000 ÷ 800 = 15 copies. The same "work ÷ safe capacity per unit" sum sizes every other part.
+        done: [{ survives: viral, max: 0.8 }]
+        hint: Run, then find each part whose load bar is over 80% at the peak, and give it more copies, partitions or workers.
+      - id: codes
+        title: Codes that never clash
+        goal: Pick a short-code scheme that can never give two links the same code, and stop abusive floods of new links.
+        teach: |
+          Every new link needs a **unique** short code. Some schemes can **collide** - give the same code to two links -
+          and then one person's link sends visitors to someone else's page.
+
+          - A **counter** gives every link the next number (1, 2, 3...). Writing that number in **base62**
+            (0-9, a-z, A-Z) keeps it short: 7 characters hold over 3.5 trillion codes. Unique by construction.
+          - A **pool** of pre-made unused codes is also unique - each code is handed out once.
+          - Random characters and chopped-off hashes *can* repeat.
+
+          Also turn on the service's **rate limit**, so one script can't create millions of links a minute.
+        ask:
+          q: Two people shorten different URLs in the same millisecond, and the scheme is "random 7 characters". Can they get the same code?
+          options:
+            - Yes - random codes can repeat, so you'd need to check and retry
+            - No - randomness never repeats
+          answer: 0
+          why: Rare is not never. With billions of links, a repeat is certain eventually, so random schemes need a "check, then retry" step.
+        done: [{ rubric: keygen_collision_safe }, { rubric: rate_limit_writes }]
+        hint: Select the service. Look at the Short-code scheme and the rate-limit setting.
+      - id: spares
+        title: A spare of everything
+        goal: Make sure no single machine dying can take the system down.
+        teach: |
+          Machines die - it's not if, but when. A **single point of failure** is any part with only one copy:
+          when it dies, everything behind it stops.
+
+          - The service needs at least **2 copies** (you already have more).
+          - Each key-value store needs at least **2 replicas** of every partition, so a copy survives a node loss.
+
+          Fury will soon kill machines on purpose (that's the Curveballs station), so leave some headroom too.
+        done: [{ clear: spof }, { rubric: replicated_store }, { rubric: redundant_services }]
+        hint: Select each key-value store and look at its Replicas setting.
     palette: [cdn, lb, service, cache, queue, worker, kvstore, sqldb]
     prebuilt:
       nodes:

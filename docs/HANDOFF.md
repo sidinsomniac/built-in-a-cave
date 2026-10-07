@@ -41,10 +41,10 @@ The core rules:
 | `npm install` | Install dependencies (Node 20+). |
 | `npm run dev` | Builds the sandbox runtime (`predev`), then starts Vite. |
 | `npm run build:sandbox` | Builds `public/sandbox/sandbox.js`, the classic-script test harness the sandbox iframe loads. It runs automatically before `dev` and `build`. The file is git-ignored. |
-| `npm test` | Vitest unit tests. **24** pass at the moment: the simulation, rules, zones, the station graders, the URL shortener calibration. |
-| `npm run validate-content` | Proves every lesson, exercise and case in jsdom, using the real harness. **17** checks pass at the moment: 2 lessons, 6 exercises, 1 case with 7 stations. |
+| `npm test` | Vitest unit tests. **31** pass at the moment: the simulation, rules, zones, the station graders, the URL shortener calibration, the guided build (a beginner's step-by-step progression), load readouts and the reference comparison. |
+| `npm run validate-content` | Proves every lesson, exercise and case in jsdom, using the real harness. **27** checks pass at the moment: 2 lessons, 6 exercises, 1 case with 7 stations (including its guided build), and a Field Manual page for each of the 10 components. |
 | `npm run build` | Sandbox, then typecheck (`tsc -b`), then the production build. |
-| `npm run e2e` | Playwright: builds, then serves on port 4174. On a Mac with Chrome, set `CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. **4** pass at the moment, including the URL shortener case played end to end. |
+| `npm run e2e` | Playwright: builds, then serves on port 4174. On a Mac with Chrome, set `CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`. **4** pass at the moment, including the URL shortener case played end to end through JARVIS's guided build, with sizes that differ from the reference. |
 
 Before every push, run all four: `npm run validate-content && npm test && npm run build && npm run e2e`.
 
@@ -62,7 +62,11 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
   - `sandboxClient.ts` runs each mission in a fresh iframe with a 15-second timeout.
 - **The design table:**
   - `@xyflow/react`, with button controls for every action (add, connect, configure, remove), so it works from the keyboard and in e2e tests.
-  - Page scroll isn't hijacked: zoom with the controls or a pinch.
+  - Page scroll isn't hijacked: zoom with the controls or a pinch. The canvas re-frames itself when a box is added, and new boxes land in free space.
+  - **Load readouts:** after a run, every box shows a load bar ("asked for / can do"), and the inspector explains the sizing (`1 partition × 2 copies × 10,000 reads/s`, hot keys, writes, cache hit rate). The report lists the hottest parts. The numbers come from `SimResult.nodeLoad`.
+  - **The Field Manual** (`content/manual.yaml`, opened from ⓘ in the palette or the inspector): one plain-words page per component, covering what it is, an analogy, when to use it, capacity, cost, how it fails, and its settings. The validator checks that every page quotes the simulation's real capacities.
+  - **The guided build** (`steps:` on a design station; `src/engine/steps.ts`; `src/ui/GuidedSteps.tsx`). One objective at a time, each with a short lesson and an optional question (a choice, or a number the calculator accepts as a sum). Steps tick from checks on the player's own design: `ran`, `has`, `clear` (a rule), `rubric` (a checker), `survives` (a scenario with every part under `max` load). The full lesson shows at Mark I, a checklist at Mark III, and nothing at Mark VII.
+  - **After a pass,** Rhodey's reference opens as "one of many designs that pass", with a part-by-part comparison (`src/engine/compare.ts`).
 - **The simulation** (`src/sim/engine.ts`):
   - A **deterministic, time-stepped flow model**, with no randomness at all.
   - Each simulated second, every traffic class flows through the wired graph:
@@ -108,13 +112,19 @@ Before every push, run all four: `npm run validate-content && npm test && npm ru
 - **The Time Vault** (spaced repetition) and **Sparring.**
 - **The Readiness meter, the Stark Expo shop, unlocking rules** (everything is open for now), and the remaining lessons and cases.
 
-**Next, in order:**
-1. **Owner playtest** of the slice: the DNS lesson, the debounce mission, and the URL shortener at Mark I.
-2. **Phase 1, The Cave, in batches.** Script the remaining scenes in `story.md` (already scripted), then build lessons 1–13, R1–R3 and the Trial.
-3. **Phase 2, The Workshop.** Add mock-socket and Rhodey's code-review rules first.
-4. **Phase 3:** add the component models it needs (CDN edge logic is there; add read replicas for SQL and an SSE/WebSocket gateway).
-5. **Phase 4:** build the blueprint and performance lab first.
-6. Then **Phases 5 and 6**, with the Brief, incident drills and spot-the-flaw.
+**Playtest feedback (2026-10-08), being worked through in order:**
+1. ✅ **Teach the design table:** the guided build, load readouts, the Field Manual, and the reference shown as one answer among many.
+2. **Plain words and a richer story:** a glossary with term tooltips, writing rules, and re-voiced scenes. **Scaffold comments and the difficulty ramp** for code missions.
+3. **The JARVIS HUD look:** cyan holographic panels, motion, and packets flowing through the design table.
+4. **A parts briefing** before B1, until Phase 3 exists.
+5. **Phase 1, lessons 1–5 and Briefing Room I** (scripted first). Then **the Phase 3 basics** that B1 relies on: one server, load balancers, caching, databases and queues.
+
+**After that, in order:**
+1. **Phase 1, The Cave:** the rest of the lessons (6–13), R2–R3 and the Trial.
+2. **Phase 2, The Workshop.** Add mock-socket and Rhodey's code-review rules first.
+3. **The rest of Phase 3:** add the component models it needs (CDN edge logic is there; add read replicas for SQL and an SSE/WebSocket gateway).
+4. **Phase 4:** build the blueprint and performance lab first.
+5. Then **Phases 5 and 6**, with the Brief, incident drills and spot-the-flaw.
 
 ## 7. Rules that always apply
 - The mentor never gives answers; feedback is questions, pseudocode, flaw pointers or analogous examples.
@@ -132,6 +142,7 @@ Newest first. One line per session or meaningful change: the date, where, and wh
 
 | Date | Where | What changed |
 |---|---|---|
+| 2026-10-08 | Claude Code desktop session | **Teach the design table** (from the owner's playtest: "how would the player know what to do?"). Added JARVIS's guided build to B1 (8 steps, each with a lesson, a question and checks on the player's own design); load readouts on every box (`nodeLoad`); the hottest-parts list; the Field Manual (`content/manual.yaml`); the reference shown as one of many passing designs, with a comparison. Workers now show their load. New boxes land in free space, and the canvas re-frames as it grows. Counts: 31 unit, 27 content checks, 4 e2e (§3, §4, §6, §10). |
 | 2026-10-06 | Claude Code desktop session | **The engine slice.** Scaffolded Vite, React, TS, zustand, Vitest, Playwright. Built the harness (Sucrase, the fetch mock, fake timers, axe) and a sandbox iframe loading a classic IIFE script (module scripts fail CORS from an opaque origin). Built the deterministic flow simulation, the anti-pattern rules and rubric checkers, zones, the audit and the station graders, plus saves with backups, the design table (`@xyflow/react`), lessons and the case view. Content: the DNS lesson, the debounce and throttle lesson, case B1 (URL shortener) through 7 stations. Counts: 24 unit, 17 content checks, 4 e2e (§3, §4, §6, §10). |
 | 2026-10-06 | Claude Code desktop session (planned from the Parseltongue session) | Repository created. Design docs written: GDD, curriculum (6 Phases, 11 front-end and 15 backend cases, coverage check), exercise-design, story (Phase 1 scripted), HANDOFF, CLAUDE.md, README. No code yet. |
 
@@ -146,3 +157,5 @@ Newest first. One line per session or meaningful change: the date, where, and wh
    - A design that is "almost there" (no cache, no headroom) should land 🔵 or 🟡.
    - When most requests fail, the simulation reports p99 as "never answers" (10,000 ms), so a broken design can't look fast.
 6. **A mixture's p99 is set by its slowest branch above 1%.** A cache with a 3% miss rate doesn't improve p99 at light load. That's realistic and worth teaching. A cache wins when the store is under pressure.
+7. **Two siblings with the same React `key` leave stale elements on screen.** The guided steps once rendered the question and the status line both keyed by the step id, and old questions piled up. Give every sibling its own key.
+8. **Calibrate guided steps against the simulation's real numbers.** Link creation adds 40 requests/s, so "4,000 ÷ 1,000 = 4 copies" lands at 101%. Numeric questions accept answers within 25% either way (`numberClose`), and the `survives` check uses the real load, so the readout teaches the last step. `src/engine/steps.test.ts` replays a beginner's build step by step; extend it for every new guided build.

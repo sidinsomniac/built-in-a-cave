@@ -134,12 +134,17 @@ Every case is replayable at a falling support level:
 
 | Level | What you get |
 |---|---|
-| **Mark I (guided)** | JARVIS walks every station, explaining as he goes. Part of the design is pre-built, hints are free, and stations unlock one at a time. |
-| **Mark III (assisted)** | The stations are laid out, with a skeleton design; hints cost a little XP. |
+| **Mark I (guided)** | JARVIS walks every station, explaining as he goes. Part of the design is pre-built, hints are free, and stations unlock one at a time. On the design table, a **guided build** breaks the design into small objectives. Each one has a short lesson, a question and a live check on the player's own design. |
+| **Mark III (assisted)** | The stations are laid out, with a skeleton design and the guided build as a bare checklist; hints cost a little XP. |
 | **Mark VII (solo)** | The stations only, nothing pre-built; the full hint ladder at full cost. |
 | **The Brief (trial)** | A blank canvas, no hints, and **time boxes per RADIO step** (for example, Requirements 5 minutes, Estimation 5, Architecture 15, Data and API 10, Deep dives and Optimisations 10). It builds interview pacing through the same hands-on stations. |
 
 A case's first appearance is always Mark I. Its replays, and later cases, move up the ladder.
+
+At every level, the design table **shows its working**:
+- every box gets a load bar after a run ("asked for 12,120 requests/s · can do 5,000");
+- the **Field Manual** explains every component in plain words;
+- after a pass, Rhodey's reference appears as *one of many* designs that pass, compared part by part with the player's.
 
 ## 7. The case mission (system design rounds)
 Each classic problem is played as stations that mirror a real 45–60 minute round:

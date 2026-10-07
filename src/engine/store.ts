@@ -34,6 +34,10 @@ export interface StationRecord {
   endpoints?: Endpoint[];
   code?: Record<string, string>;
   placements?: Record<string, string>;
+  /** Design table: whether the player has run the simulation, and the guided steps they've finished. */
+  ran?: boolean;
+  stepsDone?: string[];
+  stepAnswers?: Record<string, string>;
 }
 
 export interface CaseProgress {

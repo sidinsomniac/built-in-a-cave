@@ -1,15 +1,19 @@
 // The seven case stations. Each one is hands-on, and each submission is graded
 // into a zone with Rhodey's audit.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { auditDesign, type DesignReport } from "../engine/audit";
+import { compareDesigns } from "../engine/compare";
+import { checkStep, currentStep } from "../engine/steps";
 import { gradeAssembly, gradeDesk, gradeInterrogation, type Endpoint } from "../engine/stations";
 import type { Mark, StationRecord } from "../engine/store";
 import type { AssembleStation, Case, CodeStation, CurveballStation, DesignStation, DeskStation, EstimateStation, InterrogateStation, Station } from "../engine/types";
 import type { Zone } from "../engine/zones";
-import type { Design, SimResult } from "../sim/types";
+import { COMPONENTS } from "../sim/components";
+import type { Design, NodeLoad, SimResult } from "../sim/types";
 import { CodeBoard, EstimateBoard, OutcomePanel, type Outcome } from "./boards";
 import { AuditList, Gauge } from "./common";
-import { DesignTable } from "./DesignTable";
+import { DesignTable, LoadBar, loadZone } from "./DesignTable";
+import { GuidedSteps } from "./GuidedSteps";
 
 export interface StationProps<S extends Station> {
   c: Case;
@@ -115,17 +119,83 @@ export function EstimateView({ station, record, save, grade, outcome, setOutcome
 // 🗺 Design table (and 🚨 curveballs)
 // ---------------------------------------------------------------------------
 
-const heatOf = (sims: SimResult[]): Record<string, Zone> => {
-  const out: Record<string, Zone> = {};
-  for (const sim of sims) {
-    for (const [id, u] of Object.entries(sim.peakUtil)) {
-      const z: Zone = u > 1 ? "failing" : u > 0.85 ? "risky" : u > 0.6 ? "solid" : "optimal";
-      const prev = out[id];
-      if (!prev || ["failing", "risky", "solid", "optimal"].indexOf(z) < ["failing", "risky", "solid", "optimal"].indexOf(prev)) out[id] = z;
-    }
-  }
+/** Each node's readout from the scenario where it was busiest. */
+const loadsOf = (sims: SimResult[]): Record<string, NodeLoad> => {
+  const out: Record<string, NodeLoad> = {};
+  for (const sim of sims) for (const [id, l] of Object.entries(sim.nodeLoad)) if (!out[id] || l.util > out[id].util) out[id] = l;
   return out;
 };
+
+const heatOf = (sims: SimResult[]): Record<string, Zone> => Object.fromEntries(Object.entries(loadsOf(sims)).map(([id, l]) => [id, loadZone(l.util)]));
+
+/** The parts that ran hottest, worst first, with the numbers to size them. */
+function Bottlenecks({ sims, labels }: { sims: SimResult[]; labels: Record<string, string> }) {
+  const loads = loadsOf(sims);
+  const hot = Object.entries(loads)
+    .filter(([, l]) => l.util > 0.8)
+    .sort((a, b) => b[1].util - a[1].util)
+    .slice(0, 4);
+  if (!hot.length) return <p className="small pass" data-testid="bottlenecks">✓ Every part stayed under 80% busy at its worst moment.</p>;
+  return (
+    <div className="card" data-testid="bottlenecks">
+      <b>🔥 Hottest parts</b> <span className="muted small">(at their busiest moment)</span>
+      <ul className="bottlenecks">
+        {hot.map(([id, l]) => (
+          <li key={id}>
+            <div>
+              <b>{labels[id] ?? id}</b>
+            </div>
+            <LoadBar load={l} />
+            <div className="small soft">
+              Asked for {l.demand.toLocaleString()} {l.unit}; can do {l.capacity.toLocaleString()} {l.unit}
+              {l.sizing && <span className="muted"> ({l.sizing})</span>}.
+            </div>
+            {l.note && <div className="small muted">{l.note}</div>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Rhodey's reference, framed as one answer among many, with a diff against the player's. */
+function ReferenceCompare({ c, design }: { c: Case; design: Design }) {
+  const [show, setShow] = useState(false);
+  const diff = compareDesigns(design, c.reference);
+  return (
+    <div className="card">
+      <button className="btn small" onClick={() => setShow(!show)} data-testid="show-reference">
+        {show ? "Hide" : "Compare with"} Rhodey's reference design
+      </button>
+      {show && (
+        <div className="stack" style={{ marginTop: 10 }} data-testid="reference">
+          <p className="small soft">This is <b>one</b> of many designs that pass. Different sizes that meet the targets are just as right - here's how yours compares, part by part.</p>
+          <table className="metrics">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Yours</th>
+                <th>Rhodey's</th>
+              </tr>
+            </thead>
+            <tbody>
+              {diff.map((d) => (
+                <tr key={d.kind} className={d.same ? "" : "differs"}>
+                  <td>
+                    {COMPONENTS[d.kind].icon} {d.name}
+                  </td>
+                  <td>{d.yours}</td>
+                  <td>{d.reference}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <DesignTable design={c.reference} palette={[]} extraSettings={c.settings} readOnly height={360} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Sparkline({ sim, target }: { sim: SimResult; target?: number }) {
   const w = 300;
@@ -144,9 +214,10 @@ function Sparkline({ sim, target }: { sim: SimResult; target?: number }) {
   );
 }
 
-function SimReport({ report, labels }: { report: DesignReport; labels: Record<string, string> }) {
+function SimReport({ report, labels, nodeLabels }: { report: DesignReport; labels: Record<string, string>; nodeLabels: Record<string, string> }) {
   return (
     <div className="stack" data-testid="sim-report">
+      <Bottlenecks sims={report.sims} labels={nodeLabels} />
       {report.sims.map((sim) => (
         <div key={sim.scenarioId} className="card">
           <div className="row between">
@@ -197,24 +268,45 @@ export function DesignView({ c, station, record, save, grade, outcome, setOutcom
   }, [mark, station.prebuilt]);
   const design = record.design ?? start;
   const [report, setReport] = useState<DesignReport | null>(null);
-  const [showRef, setShowRef] = useState(false);
   const scenarios = station.scenarios.map((id) => c.scenarios.find((s) => s.id === id)!);
   const labels = Object.fromEntries(c.scenarios.map((s) => [s.id, s.label]));
+  const nodeLabels = Object.fromEntries(design.nodes.map((n) => [n.id, `${COMPONENTS[n.kind].icon} ${n.label ?? n.id}`]));
+
+  // The guided build (Mark I and III).
+  const steps = mark === 7 ? [] : (station.steps ?? []);
+  const answers = record.stepAnswers ?? {};
+  const stepsDone = record.stepsDone ?? [];
+  const ctx = { scenarios, ran: !!record.ran };
+  const current = useMemo(() => currentStep(steps, design, ctx, answers, stepsDone, mark === 1), [steps, design, record.ran, answers, stepsDone, mark]); // eslint-disable-line react-hooks/exhaustive-deps
+  const checks = useMemo(() => (steps[current] ? checkStep(steps[current], design, ctx) : []), [steps, current, design, record.ran]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const finished = steps.slice(0, current).map((s) => s.id);
+    if (finished.some((id) => !stepsDone.includes(id))) save({ stepsDone: [...new Set([...stepsDone, ...finished])] });
+  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = () => {
     const r = auditDesign(design, { scenarios, targets: station.targets, rubric: station.rubric, rules: station.rules });
     setReport(r);
+    if (!record.ran) save({ ran: true });
     setOutcome({ zone: r.zone, items: r.items, xp: grade(r.zone) });
   };
 
   return (
     <div className="stack">
-      <DesignTable design={design} onChange={(d) => save({ design: d })} palette={station.palette} extraSettings={c.settings} heat={report ? heatOf(report.sims) : {}} />
+      <GuidedSteps steps={steps} current={current} checks={checks} answers={answers} onAnswer={(id, v) => save({ stepAnswers: { ...answers, [id]: v } })} mark={mark} />
+      <DesignTable
+        design={design}
+        onChange={(d) => save({ design: d })}
+        palette={station.palette}
+        extraSettings={c.settings}
+        heat={report ? heatOf(report.sims) : {}}
+        loads={report ? loadsOf(report.sims) : undefined}
+      />
       <div className="row">
         <button className="btn primary" onClick={run} data-testid="run-sim">
           ▶ Run the simulation
         </button>
-        <button className="btn ghost small" onClick={() => confirm("Start the design again?") && save({ design: start })}>
+        <button className="btn ghost small" onClick={() => confirm("Start the design again?") && save({ design: start, stepsDone: [], stepAnswers: {} })}>
           Start again
         </button>
         <span className="muted small">Scenarios: {scenarios.map((s) => s.label).join(" · ")}</span>
@@ -222,24 +314,13 @@ export function DesignView({ c, station, record, save, grade, outcome, setOutcom
       {outcome && (
         <div className="grid2">
           <div className="card" data-testid="outcome">
-            <Gauge zone={outcome.zone} caption={outcome.zone !== "failing" ? `+${outcome.xp ?? 0} XP` : "Not yet - check the audit and the replay."} />
+            <Gauge zone={outcome.zone} caption={outcome.zone !== "failing" ? `+${outcome.xp ?? 0} XP` : "Not yet - check the audit and the hottest parts."} />
             <AuditList items={outcome.items} passed={outcome.zone !== "failing"} />
           </div>
-          {report && <SimReport report={report} labels={labels} />}
+          {report && <SimReport report={report} labels={labels} nodeLabels={nodeLabels} />}
         </div>
       )}
-      {passed && (
-        <div className="card">
-          <button className="btn small" onClick={() => setShowRef(!showRef)} data-testid="show-reference">
-            {showRef ? "Hide" : "Compare with"} Rhodey's reference design
-          </button>
-          {showRef && (
-            <div style={{ marginTop: 10 }}>
-              <DesignTable design={c.reference} palette={[]} extraSettings={c.settings} readOnly height={360} />
-            </div>
-          )}
-        </div>
-      )}
+      {passed && <ReferenceCompare c={c} design={design} />}
     </div>
   );
 }
@@ -264,7 +345,14 @@ export function CurveballView({ c, station, record, save, grade, outcome, setOut
         </ul>
         <p className="muted small">These run on your design from the Design Table. If something breaks, patch it here and throw them again.</p>
       </div>
-      <DesignTable design={design} onChange={(d) => save({ design: d })} palette={(c.stations.find((s) => s.kind === "design") as DesignStation | undefined)?.palette ?? []} extraSettings={c.settings} heat={report ? heatOf(report.sims) : {}} />
+      <DesignTable
+        design={design}
+        onChange={(d) => save({ design: d })}
+        palette={(c.stations.find((s) => s.kind === "design") as DesignStation | undefined)?.palette ?? []}
+        extraSettings={c.settings}
+        heat={report ? heatOf(report.sims) : {}}
+        loads={report ? loadsOf(report.sims) : undefined}
+      />
       <button className="btn primary" onClick={run} data-testid="run-sim">
         ▶ Throw the curveballs
       </button>
@@ -274,7 +362,7 @@ export function CurveballView({ c, station, record, save, grade, outcome, setOut
             <Gauge zone={outcome.zone} caption={outcome.zone !== "failing" ? `+${outcome.xp ?? 0} XP` : "Something broke - find it in the replay."} />
             <AuditList items={outcome.items} passed={outcome.zone !== "failing"} />
           </div>
-          {report && <SimReport report={report} labels={labels} />}
+          {report && <SimReport report={report} labels={labels} nodeLabels={Object.fromEntries(design.nodes.map((n) => [n.id, `${COMPONENTS[n.kind].icon} ${n.label ?? n.id}`]))} />}
         </div>
       )}
     </div>

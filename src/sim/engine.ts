@@ -5,7 +5,7 @@
 // capacity becomes queueing latency. There is no randomness at all, so the same
 // design always gets the same result - grading is reproducible.
 import { CAPACITY, COMPONENTS, monthlyCost, withDefaults } from "./components";
-import type { Design, DesignNode, Scenario, SettingValue, SimResult, TrafficClass } from "./types";
+import type { Design, DesignNode, NodeLoad, Scenario, SettingValue, SimResult, TrafficClass } from "./types";
 
 /** How long a restarted cache takes to warm back up, in seconds. */
 const WARM_UP = 20;
@@ -96,6 +96,9 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
   let lostEvents = 0;
   const timeline: SimResult["timeline"] = [];
   const peakUtil: Record<string, number> = {};
+  const nodeLoad: Record<string, NodeLoad> = {};
+  const fmt = (v: number) => Math.round(v).toLocaleString("en-US");
+  const plural = (n: number, one: string, many = `${one}s`) => `${fmt(n)} ${n === 1 ? one : many}`;
 
   for (let t = 0; t < scenario.duration; t++) {
     // ---- failures ----
@@ -192,6 +195,7 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
             backlog -= drained;
           }
           for (const w of workers) {
+            load(w).reads += evRps / workers.length;
             const sink = next(w).find((d) => ["kvstore", "sqldb", "objectstore"].includes(kindOf(d)));
             if (sink) load(sink).writes += processed / workers.length;
           }
@@ -277,20 +281,49 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
       const r = replicasOf(st);
       const down = isDown(st, t);
       let u = 0;
+      // What the node was asked to do, against what it can do - for the readouts.
+      let demand = 0;
+      let capacity = 0;
+      let unit = "requests/s";
+      let sizing = "";
+      let note: string | undefined;
+      const simple = (work: number, per: number, copies: number, what: string, one = "copy", many = "copies") => {
+        demand = work;
+        capacity = per * copies;
+        unit = what;
+        sizing = `${plural(copies, one, many)} × ${fmt(per)} ${what}`;
+        return copies ? work / capacity : Infinity;
+      };
       switch (st.node.kind) {
-        case "cdn": u = l.reads / CAPACITY.cdn; break;
-        case "lb": u = l.reads / (CAPACITY.lb * Math.max(1, r)); break;
-        case "service": u = r ? l.reads / (CAPACITY.service * r) : Infinity; break;
-        case "cache": u = r ? l.reads / (CAPACITY.cache * r) : Infinity; break;
-        case "queue": u = l.writes / CAPACITY.queue; break;
-        case "worker": u = 0; break;
-        case "objectstore": u = (l.reads + l.writes) / CAPACITY.objectstore; break;
+        case "cdn": u = simple(l.reads, CAPACITY.cdn, 1, "requests/s", "edge network", "edge networks"); break;
+        case "lb": u = simple(l.reads, CAPACITY.lb, Math.max(1, r), "requests/s"); break;
+        case "service": u = simple(l.reads, CAPACITY.service, r, "requests/s"); break;
+        case "cache": {
+          u = simple(l.reads, CAPACITY.cache, r, "reads/s");
+          const memory = num(st.s, "memory_gb", 4) * r;
+          const hit = cacheHit(st);
+          note = `Hit rate about ${Math.round(hit * 100)}%: ${fmt(memory)} GB of memory across its copies holds ${Math.round(Math.min(1, memory / workingSet) * 100)}% of the ${fmt(workingSet)} GB of data people read${hot ? ", and the viral key is always in it" : ""}. Every miss goes on to the store.`;
+          break;
+        }
+        case "queue": u = simple(l.writes, CAPACITY.queue, 1, "events/s", "queue", "queues"); break;
+        case "worker": u = simple(l.reads, CAPACITY.worker, r, "events/s", "worker", "workers"); break;
+        case "objectstore": u = simple(l.reads + l.writes, CAPACITY.objectstore, 1, "requests/s", "bucket", "buckets"); break;
         case "kvstore": {
           const partitions = num(st.s, "partitions", 1);
           const copies = Math.max(1, num(st.s, "replicas", 1) - st.lost / Math.max(1, partitions));
           const coldReads = l.reads - l.hotReads;
           const hottestPartition = l.hotReads + coldReads / partitions;
-          u = hottestPartition / (CAPACITY.kvRead * copies) + l.writes / partitions / CAPACITY.kvWrite;
+          const readShare = hottestPartition / (CAPACITY.kvRead * copies);
+          const writeShare = l.writes / partitions / CAPACITY.kvWrite;
+          u = readShare + writeShare;
+          demand = l.reads;
+          capacity = CAPACITY.kvRead * copies * partitions;
+          unit = "reads/s";
+          sizing = `${plural(partitions, "partition")} × ${plural(copies, "copy", "copies")} × ${fmt(CAPACITY.kvRead)} reads/s`;
+          const extra: string[] = [];
+          if (l.hotReads > 0) extra.push(`${fmt(l.hotReads)} of those reads are for ONE key, so they all land on one partition - extra partitions don't spread them, extra copies do.`);
+          if (l.writes > 0) extra.push(`It also takes ${fmt(l.writes)} writes/s (each partition handles about ${fmt(CAPACITY.kvWrite)} writes/s), which use up read capacity too.`);
+          note = extra.join(" ") || undefined;
           if (l.hotReads > 0 && hottestPartition / (CAPACITY.kvRead * copies) > 0.8) {
             notes.add("One partition is hot: a single key gets a big share of the traffic.");
           }
@@ -298,15 +331,28 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
         }
         case "sqldb": {
           const fastReads = l.reads - l.slowReads;
-          const readCap = CAPACITY.sqlRead * Math.max(1, 1 + num(st.s, "read_replicas", 0) - st.lost);
+          const copies = Math.max(1, 1 + num(st.s, "read_replicas", 0) - st.lost);
+          const readCap = CAPACITY.sqlRead * copies;
           u = (fastReads + l.slowReads * 20) / readCap + l.writes / CAPACITY.sqlWrite;
+          demand = l.reads;
+          capacity = readCap;
+          unit = "reads/s";
+          sizing = `${plural(copies, "machine")} (the primary plus read replicas) × ${fmt(CAPACITY.sqlRead)} reads/s`;
+          const extra: string[] = [];
+          if (l.slowReads > 0) extra.push(`${fmt(l.slowReads)} reads scan the whole table (no index), and each costs about 20 normal reads.`);
+          if (l.writes > 0) extra.push(`It also takes ${fmt(l.writes)} writes/s, and all writes go to the one primary (about ${fmt(CAPACITY.sqlWrite)} writes/s).`);
+          note = extra.join(" ") || undefined;
           break;
         }
         default: u = 0;
       }
       if (down) u = Infinity;
       util.set(id, u);
-      peakUtil[id] = Math.max(peakUtil[id] ?? 0, Number.isFinite(u) ? u : 99);
+      const shown = Number.isFinite(u) ? u : 99;
+      if (st.node.kind !== "client" && (!(id in nodeLoad) || shown > nodeLoad[id].util)) {
+        nodeLoad[id] = { util: shown, t, demand: Math.round(demand), capacity: Math.round(down ? 0 : capacity), unit, sizing, note: down ? "It was down at this moment." : note };
+      }
+      peakUtil[id] = Math.max(peakUtil[id] ?? 0, shown);
       const err = down ? 1 : u > 1 ? 1 - 1 / u : 0;
       nodeErr.set(id, err);
       if (u > 1 && Number.isFinite(u) && !firstOverload.has(id)) {
@@ -387,6 +433,7 @@ export function simulate(design: Design, scenario: Scenario): SimResult {
     backlog: Math.round(backlog),
     lostEvents: Math.round(lostEvents),
     peakUtil,
+    nodeLoad,
     timeline,
     notes: [...notes],
   };

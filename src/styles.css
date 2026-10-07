@@ -151,3 +151,34 @@ label { display: block; }
 .lecture table { border-collapse: collapse; margin: 10px 0; }
 .lecture td, .lecture th { border: 1px solid var(--line); padding: 6px 10px; }
 .checkpoint { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 12px 0; background: var(--panel); }
+
+/* Guided build, load readouts and the Field Manual */
+.guided { border: 1px solid rgba(76, 195, 255, 0.35); background: rgba(76, 195, 255, 0.05); border-radius: 12px; padding: 14px 16px; }
+.steplist { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.steplist li { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--mute); }
+.steplist li.done { color: var(--optimal); border-color: rgba(74, 222, 128, 0.4); }
+.steplist li.now { color: var(--ink); border-color: #8fd8ff; background: rgba(76, 195, 255, 0.12); }
+.steplist .tick { margin-right: 5px; }
+.step-body h3 { margin-top: 6px; }
+.step-body .goal { font-weight: 600; color: #8fd8ff; }
+.step-ask { border-left: 2px solid var(--accent2); padding: 6px 0 6px 12px; margin: 10px 0; }
+.loadbar { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 5px; font-family: var(--mono); }
+.loadbar .track { flex: 0 0 54px; height: 5px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.loadbar .track i { display: block; height: 100%; }
+.loadbar.optimal .track i { background: var(--optimal); }
+.loadbar.solid .track i { background: var(--solid); }
+.loadbar.risky .track i { background: var(--risky); }
+.loadbar.failing .track i { background: var(--failing); }
+.loadbar.failing span { color: var(--failing); }
+.readout-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); display: grid; gap: 4px; }
+.bottlenecks { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 10px; }
+.pal-item { display: inline-flex; }
+.pal-item .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.pal-item .info { border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; padding-left: 7px; padding-right: 7px; }
+.linklike { background: none; border: 0; padding: 0; color: var(--accent2); font: inherit; cursor: pointer; }
+.linklike:hover { text-decoration: underline; }
+.manual { display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; margin: 12px 0; }
+.manual dt { color: var(--mute); font-size: 13px; }
+.manual dd { margin: 0; }
+@media (max-width: 560px) { .manual { grid-template-columns: 1fr; } .manual dd { margin-bottom: 6px; } }
+.metrics tr.differs td:nth-child(2) { color: var(--accent2); }
